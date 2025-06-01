@@ -1,4 +1,4 @@
-from environment_vars import ACCESS_TOKEN
+from env_vars import ACCESS_TOKEN
 import requests
 
 print(repr(ACCESS_TOKEN))

@@ -1,8 +1,9 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy.types import LargeBinary
+from sqlalchemy.types import LargeBinary, TypeDecorator
 from sqlalchemy import DateTime
-from typing import List
-import time
+from cryptography.fernet import Fernet
+from env_vars import ENCRYPTION_KEY
+
 
 # models for bot database:
 
@@ -18,6 +19,27 @@ import time
 class Base(DeclarativeBase):
     pass
 
+class EncryptedToken(TypeDecorator):
+    impl = LargeBinary
+    cache_ok = True
+
+    def __init__(self, key: bytes):
+        # passed to EncryptedToken from environment variable
+        self.fernet_key = Fernet(key)
+
+    def process_bind_param(self, value: str | None, dialect):
+        if value is None:
+            return value
+        else:
+            return self.fernet_key.encrypt(value.encode(encoding="utf-8"))
+    
+    def process_result_value(self, value: bytes | None, dialect):
+        if value is None:
+            return value
+        else:
+            return self.fernet_key.decrypt(value).decode(encoding="utf-8")
+    
+        
 
 # contains encrypted refresh and access tokens
 class Tokens(Base):
@@ -26,7 +48,7 @@ class Tokens(Base):
     id:Mapped[int] = mapped_column(primary_key = True)
 
     # encrypted token value by key stored as environment variable
-    value:Mapped[LargeBinary] = mapped_column(nullable=False)
+    value:Mapped[str] = mapped_column(EncryptedToken(ENCRYPTION_KEY), nullable=False)
 
     expiry_date:Mapped[DateTime] = mapped_column(nullable=False)
 
