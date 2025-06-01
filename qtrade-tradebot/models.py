@@ -3,7 +3,7 @@ from sqlalchemy.types import LargeBinary, TypeDecorator
 from sqlalchemy import DateTime
 from cryptography.fernet import Fernet
 from env_vars import ENCRYPTION_KEY
-
+import datetime
 
 # models for bot database:
 
@@ -25,19 +25,20 @@ class EncryptedToken(TypeDecorator):
 
     def __init__(self, key: bytes):
         # passed to EncryptedToken from environment variable
+        super().__init__()
         self.fernet_key = Fernet(key)
 
     def process_bind_param(self, value: str | None, dialect):
         if value is None:
             return value
         else:
-            return self.fernet_key.encrypt(value.encode(encoding="utf-8"))
+            return self.fernet_key.encrypt(value.encode(encoding = "utf-8"))
     
     def process_result_value(self, value: bytes | None, dialect):
         if value is None:
             return value
         else:
-            return self.fernet_key.decrypt(value).decode(encoding="utf-8")
+            return self.fernet_key.decrypt(value).decode(encoding = "utf-8")
     
         
 
@@ -48,11 +49,13 @@ class Tokens(Base):
     id:Mapped[int] = mapped_column(primary_key = True)
 
     # encrypted token value by key stored as environment variable
-    value:Mapped[str] = mapped_column(EncryptedToken(ENCRYPTION_KEY), nullable=False)
+    value:Mapped[str] = mapped_column(EncryptedToken(ENCRYPTION_KEY), nullable = False)
 
-    expiry_date:Mapped[DateTime] = mapped_column(nullable=False)
+    expiry_date:Mapped[datetime.datetime] = mapped_column(DateTime,nullable = False)
 
-
+'''
 class Stock(Base):
     # to be implemented
     pass
+'''
+

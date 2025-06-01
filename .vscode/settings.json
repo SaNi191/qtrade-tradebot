@@ -1,0 +1,12 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "bot-testing",
+            "group": "bot",
+            "database": "${workspaceFolder:qtrade-tradebot}/qtrade-tradebot/bot.db"
+        }
+    ],
+    "sqltools.useNodeRuntime": true
+}
