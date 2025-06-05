@@ -4,6 +4,7 @@ from models import Tokens, Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 import requests
+import datetime
 
 ### TODO: move engine, session, db initialization to seperate module
 
@@ -24,11 +25,13 @@ class TokenManager():
         # session will be used to obtain refresh and access tokens
         self.session = session
 
+        # self.token will be a Tokens instance
+
         # only run at the beginning, contains starting token logic
-        self.get_token()
+        self.init_token()
     
 
-    def get_token(self):
+    def init_token(self):
         with self.session as session:
             # each time a new token is refreshed, replace obsolete old data
             # thus only one token should be in the database
@@ -49,6 +52,7 @@ class TokenManager():
             else:
                 self.token = result
 
+
     # will overwrite existing token row or add row if none exist
     # does not check for expiry logic!
     def refresh_tokens(self, **kwargs):
@@ -56,15 +60,16 @@ class TokenManager():
 
         if 'refresh_token' in kwargs:
             # if given a starter refresh_token (from environment variable) use it
-            result = requests.get(ADDRESS.format(kwargs['refresh_token']))
+            print(kwargs['refresh_token'])
+            result = requests.get(ADDRESS.format(token = kwargs['refresh_token']))
 
         else:
             # otherwise, assume that self.token is set and utilize self.token to get 
-            result = requests.get(ADDRESS.format(self.token.refresh_token))
+            result = requests.get(ADDRESS.format(token = self.token.refresh_token))
 
         try:
             result.raise_for_status()
-            
+
         except requests.HTTPError:
             print(f"Error Occurred! Status Code: {result.status_code}")
             raise requests.HTTPError
@@ -79,20 +84,47 @@ class TokenManager():
             session.add(parsed_results)
             session.commit()
         
-
+        self.token = parsed_results
+    
 
     def parse_result(self, result) -> Tokens:
         json_results = result.json()
         
+        # print results for troubleshooting
+        print(json_results)
+
+
         token = Tokens(
             access_token = json_results['access_token'], 
             refresh_token = json_results['refresh_token'], 
             api_server = json_results['api_server'], 
-            expiry_date = json_results['expiry_date']
-            )
+            expiry_date = datetime.datetime.now() + datetime.timedelta(seconds = json_results['expires_in'])
+        )
         
         return token
 
+    @property
+    def access_token(self):
+        # WIP: implement check for expiry 
+        if self.token is None:
+            print("Error: token is not yet defined!")
+            return None
+        
+        return self.token.access_token
+    
+    @property
+    def refresh_token(self):
+        if self.token is None:
+            print("Error: token is not yet defined!")
+            return None
 
+        return self.token.refresh_token
+    
+
+    
+# testing
+token = TokenManager(session)
+print(token.refresh_token)
+print(token.access_token)
 
 
