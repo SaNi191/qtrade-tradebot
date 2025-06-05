@@ -8,8 +8,7 @@ env_file_path = find_dotenv()
 
 load_dotenv(env_file_path)
 
-BOT_TOKEN = os.getenv('bot_token')
-ACCESS_TOKEN = os.getenv('access_token')
+REFRESH_TOKEN = os.getenv('refresh_token')
 ENCRYPTION_KEY_STR = os.getenv('encryption_key')
 
 if ENCRYPTION_KEY_STR is None:

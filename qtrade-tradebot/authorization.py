@@ -1,4 +1,4 @@
-from env_vars import ACCESS_TOKEN
+'''from env_vars import ACCESS_TOKEN
 import requests
 
 print(repr(ACCESS_TOKEN))
@@ -7,3 +7,6 @@ result = requests.get(f'https://login.questrade.com/oauth2/token?grant_type=refr
 result.raise_for_status()
 
 print(result)
+'''
+# depreciated
+

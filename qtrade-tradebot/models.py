@@ -8,8 +8,7 @@ import datetime
 # models for bot database:
 
     # Tokens:
-        # id | value | expiry_date
-    # note: id 1 will be refresh token; id 2 will be access token
+        # id | refresh_token | access_token | expiry_date
     
     # Stock:
         # id | ticker | value | stop_loss
@@ -49,9 +48,13 @@ class Tokens(Base):
     id:Mapped[int] = mapped_column(primary_key = True)
 
     # encrypted token value by key stored as environment variable
-    value:Mapped[str] = mapped_column(EncryptedToken(ENCRYPTION_KEY), nullable = False)
+    refresh_token:Mapped[str] = mapped_column(EncryptedToken(ENCRYPTION_KEY), nullable = False)
+    access_token: Mapped[str] = mapped_column(EncryptedToken(ENCRYPTION_KEY), nullable = False)
+    # Tokens will not store the bootstrap case requiring manual authentification    
 
+    # nullable as refresh tokens are one-time-use thus expiry_date is not relevant
     expiry_date:Mapped[datetime.datetime] = mapped_column(DateTime,nullable = False)
+    # check for expiry upon request: if expired -> send notification to user, must manually get new token
 
 '''
 class Stock(Base):
