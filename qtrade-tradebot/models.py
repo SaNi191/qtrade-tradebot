@@ -51,7 +51,7 @@ class Tokens(Base):
     refresh_token:Mapped[str] = mapped_column(EncryptedToken(ENCRYPTION_KEY), nullable = False)
     access_token: Mapped[str] = mapped_column(EncryptedToken(ENCRYPTION_KEY), nullable = False)
     # Tokens will not store the bootstrap case requiring manual authentification    
-
+    api_server: Mapped[str] = mapped_column(nullable=False)
     # nullable as refresh tokens are one-time-use thus expiry_date is not relevant
     expiry_date:Mapped[datetime.datetime] = mapped_column(DateTime,nullable = False)
     # check for expiry upon request: if expired -> send notification to user, must manually get new token

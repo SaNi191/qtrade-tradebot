@@ -50,31 +50,49 @@ class TokenManager():
                 self.token = result
 
     # will overwrite existing token row or add row if none exist
+    # does not check for expiry logic!
     def refresh_tokens(self, **kwargs):
+        ADDRESS = 'https://login.questrade.com/oauth2/token?grant_type=refresh_token&refresh_token={token}'
+
         if 'refresh_token' in kwargs:
             # if given a starter refresh_token (from environment variable) use it
-            address = 'https://login.questrade.com/oauth2/token?grant_type=refresh_token&refresh_token={token}'
-            result = requests.get(address.format(kwargs['refresh_token']))
-            
-            try:
-                result.raise_for_status()
-            except requests.HTTPError:
-                print(f"Error Occurred! Status Code: {result.status_code}")
-                
-                # implement logic to notify user via SMS/Email later
-                
-                return
-            parsed_results = self.parse_result(result)
-            # parse_result will return a Token object to be commited to session
+            result = requests.get(ADDRESS.format(kwargs['refresh_token']))
 
         else:
             # otherwise, assume that self.token is set and utilize self.token to get 
+            result = requests.get(ADDRESS.format(self.token.refresh_token))
+
+        try:
+            result.raise_for_status()
+            
+        except requests.HTTPError:
+            print(f"Error Occurred! Status Code: {result.status_code}")
+            raise requests.HTTPError
+            # implement logic to notify user via SMS/Email later
+
+        # status is 200:
+        parsed_results = self.parse_result(result)
+        # parse_result will return a Token object to be commited to session
+
+
+        with self.session as session:
+            session.add(parsed_results)
+            session.commit()
+        
+
 
     def parse_result(self, result) -> Tokens:
-        )
-        token = Tokens()
+        json_results = result.json()
+        
+        token = Tokens(
+            access_token = json_results['access_token'], 
+            refresh_token = json_results['refresh_token'], 
+            api_server = json_results['api_server'], 
+            expiry_date = json_results['expiry_date']
+            )
+        
         return token
-        pass
+
 
 
 
