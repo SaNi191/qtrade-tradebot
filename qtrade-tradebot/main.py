@@ -17,7 +17,7 @@ session = session_maker()
 
 Base.metadata.create_all(engine)
 
-
+### TODO: move TokenManager to a  seperate module 
 
 # main class for managing refresh and access tokens; automatically refresh OAuth tokens
 class TokenManager():
@@ -105,7 +105,7 @@ class TokenManager():
 
     @property
     def access_token(self):
-        # WIP: implement check for expiry 
+        # TODO: implement check for expiry 
         if self.token is None:
             print("Error: token is not yet defined!")
             return None
@@ -114,6 +114,7 @@ class TokenManager():
     
     @property
     def refresh_token(self):
+        # not going to check refresh token expiry: access_token will be the limiting factor
         if self.token is None:
             print("Error: token is not yet defined!")
             return None
@@ -124,7 +125,7 @@ class TokenManager():
     
 # testing
 token = TokenManager(session)
-print(token.refresh_token)
-print(token.access_token)
+print(f'refresh token: {token.refresh_token}')
+print(f'access token: {token.access_token}')
 
 

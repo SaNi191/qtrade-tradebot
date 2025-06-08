@@ -1,10 +1,9 @@
 import os
 from dotenv import find_dotenv, load_dotenv
 
-# loads environment variables; ACCESS_TOKEN
+# Purpose: loads environment variables;
 
 env_file_path = find_dotenv()
-
 
 load_dotenv(env_file_path)
 

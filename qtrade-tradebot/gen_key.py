@@ -1,8 +1,5 @@
-# only use once
-
+# Purpose: only use once to generate encryption key to be stored in .env
 
 from cryptography.fernet import Fernet
 
 print(Fernet.generate_key().decode())
-
-# result stored in .env

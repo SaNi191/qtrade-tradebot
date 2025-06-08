@@ -5,19 +5,22 @@ from cryptography.fernet import Fernet
 from env_vars import ENCRYPTION_KEY
 import datetime
 
+# Purpose: define database models for SQLAlchemy
+
 # models for bot database:
 
     # Tokens:
         # id | refresh_token | access_token | expiry_date
     
     # Stock:
-        # id | ticker | value | stop_loss
-
+        # ticker (primary key) | current_value | peak_value | stop_loss_threshold
+        # use ticker as primary key as it will always be unique
 
 # define our Base
 class Base(DeclarativeBase):
     pass
 
+# customized encrypted token class built upon LargeBinary
 class EncryptedToken(TypeDecorator):
     impl = LargeBinary
     cache_ok = True
@@ -40,7 +43,6 @@ class EncryptedToken(TypeDecorator):
             return self.fernet_key.decrypt(value).decode(encoding = "utf-8")
     
         
-
 # contains encrypted refresh and access tokens
 class Tokens(Base):
     __tablename__:str = "token_table"
@@ -53,9 +55,13 @@ class Tokens(Base):
     # Tokens will not store the bootstrap case requiring manual authentification    
     api_server: Mapped[str] = mapped_column(nullable=False)
     # nullable as refresh tokens are one-time-use thus expiry_date is not relevant
-    expiry_date:Mapped[datetime.datetime] = mapped_column(DateTime,nullable = False)
-    # check for expiry upon request: if expired -> send notification to user, must manually get new token
 
+    expiry_date:Mapped[datetime.datetime] = mapped_column(DateTime,nullable = False)
+    # check for expiry upon request: if expired -> refresh using refresh_token
+    # if refresh_token is invalid: error will occur -> logic to be implemented seperately
+
+
+### TODO: add stock database to track max recorded price, stop-loss threshold, growth/decline
 '''
 class Stock(Base):
     # to be implemented

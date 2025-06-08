@@ -8,5 +8,5 @@ result.raise_for_status()
 
 print(result)
 '''
-# depreciated
+# depreciated: used for basic testing
 
