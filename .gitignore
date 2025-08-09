@@ -1,4 +1,13 @@
 .env
 .venv/
 test.py
+
+# should be safe to commit bot.db due to encryption
 qtrade-tradebot/bot.db
+
+
+__pycache__
+__pycache__/*
+
+bot-testing*
+bot.db
