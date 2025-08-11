@@ -1,11 +1,13 @@
 import requests
 import datetime
 from models import Token
-from env_vars import REFRESH_TOKEN
+from utils.env_vars import REFRESH_TOKEN
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy import select, exc
 from contextlib import contextmanager
 
+# Purpose: define a manager for Tokens (TokenManager) that provide an interface with models
+# TODO: use logging instead of print; alert user when expired/error
 
 @contextmanager
 def session_manager(SessionLocal: sessionmaker):
@@ -22,7 +24,7 @@ def session_manager(SessionLocal: sessionmaker):
 
 
 
-# main class for managing refresh and access tokens; automatically refresh OAuth tokens
+# class for managing refresh and access tokens; automatically refresh tokens
 # interfaces with SQLAlchemy
 class TokenManager():
     def __init__(self, sessionmaker: sessionmaker):
@@ -33,7 +35,7 @@ class TokenManager():
         self._check_token()
     
     # will raise an error if None or multiple Tokens found in db
-    def get_token(self, session: Session) -> Token:
+    def _get_token(self, session: Session) -> Token:
         # helper function to avoid detached instance errors: fetch token from database and load into given session
         # token is unique (primary key id = 1)
         token = session.scalars(select(Token).filter(Token.id == 1)).one()
@@ -47,27 +49,28 @@ class TokenManager():
             
             # thus only one token should be in the database
             try:
-                result = self.get_token(session)
+                result = self._get_token(session)
             except exc.NoResultFound:
                 # exception will occur if no token was in db
                 # no token in database: grab from environment variable (likely expired)
                 # will need to check for expiry separately
-                from env_vars import REFRESH_TOKEN
+                from utils.env_vars import REFRESH_TOKEN
 
                 # refresh_tokens to get new pair; refresh_tokens will set self.token
-                self.refresh_tokens(session, refresh_token = REFRESH_TOKEN)
-            else:
+                self._refresh_tokens(session, rf_token = REFRESH_TOKEN)
+            except:
                 raise
                 
 
     # will overwrite existing token row or add row if none exist
     # does not check for expiry logic!
-    def refresh_tokens(self, session: Session, refresh_token = None):
+    def _refresh_tokens(self, session: Session, rf_token = None):
         # session can be passed to refresh_tokens to ensure that transactions completed in refresh_tokens remain consistent with parent function
 
         REFRESH_ADDRESS = 'https://login.questrade.com/oauth2/token?grant_type=refresh_token&refresh_token={token}'
 
-        token_to_use = refresh_token or self.get_token(session).refresh_token
+        token_to_use = rf_token or self.refresh_token
+        # use property to access refresh_token in case none are given
 
         # query for new refresh + access token
         result = requests.get(REFRESH_ADDRESS.format(token = token_to_use))
@@ -81,7 +84,7 @@ class TokenManager():
             # implement logic to notify user via SMS/Email later
 
 
-        parsed_token = self.parse_result(result)
+        parsed_token = self._parse_result(result)
         # parse_result returns a Token object to be commited to session
 
         session.merge(parsed_token)
@@ -93,13 +96,17 @@ class TokenManager():
         # every retrieval of the token should check for expiry 
 
         with session_manager(self.SessionLocal) as session:
-            token = self.get_token(session)
+            token = self._get_token(session)
 
             # check for expiry
             if datetime.datetime.now() >= token.expiry_date:
                 # access token is expired: attempt to refresh
-                self.refresh_tokens(session)
-                print("access token was expired on: ", token.expiry_date) # for testing purposes
+                print("Attempting refresh: access token was expired on: ", token.expiry_date) # for testing purposes
+                
+                self._refresh_tokens(session)
+
+                session.refresh()
+                
                 
         
             return token.access_token 
@@ -109,11 +116,11 @@ class TokenManager():
     def refresh_token(self):
         with session_manager(self.SessionLocal) as session:
             # not going to check refresh token expiry: access_token is the limiting factor
-            token = self.get_token(session)
+            token = self._get_token(session)
             return token.refresh_token
 
 
-    def parse_result(self, result) -> Token:
+    def _parse_result(self, result) -> Token:
         json_results = result.json()
         
         # print results for troubleshooting
