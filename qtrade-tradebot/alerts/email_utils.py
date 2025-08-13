@@ -1,11 +1,12 @@
 import os
-from email.message import EmailMessage
+import base64
 
+from email.message import EmailMessage
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
-
+from googleapiclient.errors import HttpError
 
 
 from .alerts import BaseAlert
@@ -14,7 +15,7 @@ SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 
 PATH_TO_TOKEN = os.getenv('TOKEN_PATH')
 PATH_TO_CRED = os.getenv('CRED_PATH')
-
+BOT_EMAIL = os.getenv('BOT_EMAIL')
 
 class EmailAlert(BaseAlert):
     def __init__(self) -> None:
@@ -53,6 +54,34 @@ class EmailAlert(BaseAlert):
     def send_msg(self, msg:str,  recipient:str, subject:str):
         mail = EmailMessage()
 
-        # TODO: configure email, send mail using gmail api
+        # set headers
+        mail['To'] = recipient
+        mail['From'] = BOT_EMAIL # always unchanged
+        mail['Subject'] = subject
         
+
+        # set content
+        mail.set_content(msg)
+
+        # no attachments expected so we will not use multipart MIME messages
+        # TODO: consider adding some visuals to notification email
+
+        # encode msg to url safe format then decode to python string
+        encoded_mail = base64.urlsafe_b64encode(mail.as_bytes()).decode()
+        
+        create_mail = {"raw": encoded_mail}
+
+        # send mail using service
+        try:
+            sent_message = (
+                self.service.users()
+                .messages()
+                .send(userId = "me", body = create_mail)
+                .execute()
+            )
+        except HttpError:
+            sent_message = None
+            print(f"Error Occurred: {HttpError}")
+
+        # return sent_message
 
