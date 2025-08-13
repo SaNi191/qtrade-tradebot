@@ -5,6 +5,8 @@ test.py
 # should be safe to commit bot.db due to encryption
 qtrade-tradebot/bot.db
 
+qtrade-tradebot/secrets
+qtrade-tradebot/secrets/*
 
 __pycache__
 __pycache__/*
