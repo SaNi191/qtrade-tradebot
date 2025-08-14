@@ -10,6 +10,10 @@ qtrade-tradebot/secrets/*
 
 __pycache__
 __pycache__/*
+*/__pycache__/*
+
 
 bot-testing*
 bot.db
+
+google_quickstart
