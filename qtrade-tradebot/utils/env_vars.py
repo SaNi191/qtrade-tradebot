@@ -9,6 +9,9 @@ load_dotenv(env_file_path)
 
 REFRESH_TOKEN = os.getenv('refresh_token')
 ENCRYPTION_KEY_STR = os.getenv('encryption_key')
+PATH_TO_TOKEN = os.getenv('TOKEN_PATH')
+PATH_TO_CRED = os.getenv('CRED_PATH')
+BOT_EMAIL = os.getenv('BOT_EMAIL')
 
 if ENCRYPTION_KEY_STR is None:
     # should not occur

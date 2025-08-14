@@ -7,3 +7,5 @@ class BaseAlert(ABC):
         # handles the logic to connect to required resources then sends msg to recipient with subject
         pass
 
+    
+

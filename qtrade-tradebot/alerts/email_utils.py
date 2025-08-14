@@ -5,18 +5,18 @@ from email.message import EmailMessage
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from googleapiclient.errors import HttpError
-
-
 from .alerts import BaseAlert
 
+
+# constants
+from utils.env_vars import PATH_TO_TOKEN, PATH_TO_CRED, BOT_EMAIL
 SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 
-PATH_TO_TOKEN = os.getenv('TOKEN_PATH')
-PATH_TO_CRED = os.getenv('CRED_PATH')
-BOT_EMAIL = os.getenv('BOT_EMAIL')
 
+# EmailAlert to handle bot alerts sent with email
 class EmailAlert(BaseAlert):
     def __init__(self) -> None:
         self.creds = self.get_creds()
@@ -24,7 +24,7 @@ class EmailAlert(BaseAlert):
 
 
     def get_creds(self):
-        # retrieve credentials and return a Credentials instance
+        # retrieve credentials and return a Credentials instance from API
         creds = None
 
         if PATH_TO_TOKEN and os.path.exists(PATH_TO_TOKEN):
@@ -32,15 +32,23 @@ class EmailAlert(BaseAlert):
         
         if not creds or not creds.valid:
             # creds was not found or creds invalid, use credentials to validate
-
             if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
+                try:
+                    creds.refresh(Request())
+                except RefreshError as err:
+                    print("Token refresh failed: {err}")
+                    creds = None
             
-            else:
+            if not creds:
+                # PATH_TO_CRED must be defined: credentials are required and cannot be produced at runtime
+                if not PATH_TO_CRED:
+                    raise RuntimeError("Credential Path Undefined")
+                
                 flow = InstalledAppFlow.from_client_secrets_file(PATH_TO_CRED, SCOPES)
                 creds = flow.run_local_server()
 
                 if PATH_TO_TOKEN:
+                    # cache token to file
                     with open(PATH_TO_TOKEN, 'w') as f:
                         f.write(creds.to_json())
                 else:
@@ -79,9 +87,10 @@ class EmailAlert(BaseAlert):
                 .send(userId = "me", body = create_mail)
                 .execute()
             )
-        except HttpError:
-            sent_message = None
-            print(f"Error Occurred: {HttpError}")
+            return sent_message
+        except HttpError as err:
+            print(f"Error Occurred: {err}")
+            return None
 
         # return sent_message
 
