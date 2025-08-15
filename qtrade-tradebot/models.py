@@ -1,6 +1,7 @@
+from typing import Any
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy.types import LargeBinary, TypeDecorator, Numeric
-from sqlalchemy import DateTime
+from sqlalchemy.types import LargeBinary, TypeDecorator, Numeric, String
+from sqlalchemy import DateTime, Dialect
 from cryptography.fernet import Fernet
 from utils.env_vars import ENCRYPTION_KEY
 import datetime
@@ -45,6 +46,7 @@ class EncryptedToken(TypeDecorator):
         else:
             return self.fernet_key.decrypt(value).decode(encoding = "utf-8")
 
+
         
 # contains encrypted refresh and access tokens
 class Token(Base):
@@ -67,11 +69,22 @@ class Token(Base):
 
 ### TODO: add stock database to track max recorded price, stop-loss threshold, growth/decline
 
+# ticker type decorator as exercise
+class Ticker(TypeDecorator):
+    impl = String
+    def __init__ (self, length = 5):
+        # tickers have a max length of 5 on major exchanges
+        super().__init__(length)
+        
+    def process_bind_param(self, value: str | None, dialect) -> Any:
+        # automatically store tickers as upper case
+        return value.upper() if value else None
+
 class Stock(Base):
     __tablename__:str = "stock_table"
 
     # use the ticker as primary key
-    ticker:Mapped[str] = mapped_column(primary_key = True)
+    ticker:Mapped[str] = mapped_column(Ticker, primary_key = True)
 
     current_value:Mapped[float] = mapped_column(Numeric(), nullable = False)
     peak_value:Mapped[float] = mapped_column(Numeric(), nullable = False)
