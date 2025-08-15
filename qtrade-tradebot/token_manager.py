@@ -4,24 +4,10 @@ from models import Token
 from utils.env_vars import REFRESH_TOKEN
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy import select, exc
-from contextlib import contextmanager
+from db import session_manager
 
 # Purpose: define a manager for Tokens (TokenManager) that provide an interface with models
 # TODO: use logging instead of print; alert user when expired/error
-
-@contextmanager
-def session_manager(SessionLocal: sessionmaker):
-    session = SessionLocal()
-    try:
-        yield session
-        session.commit()
-    except Exception as e:
-        print(f"Exception Occurred {e}")
-        session.rollback()
-        raise e
-    finally:
-        session.close()
-
 
 
 # class for managing refresh and access tokens; automatically refresh tokens
