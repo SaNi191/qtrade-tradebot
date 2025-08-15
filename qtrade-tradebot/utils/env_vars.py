@@ -12,6 +12,7 @@ ENCRYPTION_KEY_STR = os.getenv('encryption_key')
 PATH_TO_TOKEN = os.getenv('TOKEN_PATH')
 PATH_TO_CRED = os.getenv('CRED_PATH')
 BOT_EMAIL = os.getenv('BOT_EMAIL')
+STOPLOSS_RATIO = os.getenv('STOP_LOSS')
 
 if ENCRYPTION_KEY_STR is None:
     # should not occur
