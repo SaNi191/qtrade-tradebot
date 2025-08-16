@@ -39,10 +39,9 @@ class StockTracker():
         # specifically for updating previously existing stocks, not for adding new stocks
         ticker = ticker.upper()
         with session_manager(self.SessionLocal) as session:
-            stock: Stock = session.scalars(select(Stock.ticker).where(Stock.ticker == ticker)).first()
+            stock: Stock = session.get(ticker)
             if not stock:
-                raise RuntimeError("Stock not found!")
-            
+                raise RuntimeError(f"Stock with ticker {ticker} not found!")
             
             # update current value
             stock.current_value = new_price
@@ -59,10 +58,10 @@ class StockTracker():
         # method to add new stocks; will throw a Runtime Error if given a stock that already exists
         new_ticker = new_ticker.upper()
         with session_manager(self.SessionLocal) as session:
-            stock: Stock = session.scalars(select(Stock.ticker).where(Stock.ticker == new_ticker)).first()
+            stock: Stock = session.get(new_ticker)
 
             if stock:
-                raise RuntimeError("Stock already exists!")
+                raise RuntimeError(f"Stock with ticker {new_ticker} already exists!")
             
             new_stock = Stock(ticker = new_ticker, current_value = new_price, peak_value = new_price, stop_loss_value = new_price * self.stop_loss_ratio)
             session.add(new_stock)
