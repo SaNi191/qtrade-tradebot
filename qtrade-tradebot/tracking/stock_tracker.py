@@ -70,8 +70,12 @@ class StockTracker():
     def _remove_stock(self, ticker_to_remove: str):
         # method to remove a tracked ticker; will throw a Runtime Error if ticker does not exist
         ticker_to_remove = ticker_to_remove.upper()
-        pass 
-        # TODO: Finish remove stock
+        with session_manager(self.SessionLocal) as session:
+            stock: Stock = session.get(ticker_to_remove)
+            if not stock:
+                raise RuntimeError(f"Stock with ticker {ticker_to_remove} does not exist!")
+            session.delete(stock)
+
 
 
     @property
