@@ -16,7 +16,7 @@ class StockTracker():
         # SessionLocal stores sessionmaker that creates Sessions connecting to bot.db
         self.SessionLocal = sessionmaker
 
-
+    
     def _get_tracked_stock_tickers(self) -> Sequence:
         # use to get a list of tickers (primary key) for tracked stocks (in database)
         with session_manager(self.SessionLocal) as session:
@@ -36,7 +36,7 @@ class StockTracker():
 
     def _update_stock(self, ticker: str, new_price: float):
         # we only want to be able to update stocks internally through StockTracker
-        # specifically for updating previously existing stocks, will not add unknown stocks
+        # specifically for updating previously existing stocks, not for adding new stocks
         ticker = ticker.upper()
         with session_manager(self.SessionLocal) as session:
             stock: Stock = session.scalars(select(Stock.ticker).where(Stock.ticker == ticker)).first()
@@ -50,15 +50,44 @@ class StockTracker():
             # if new value is greater than the peak value update stop loss thresholds
             if stock.peak_value < new_price:
                 # update new peak_value
-                from utils.env_vars import STOPLOSS_RATIO
-
-                if not STOPLOSS_RATIO:
-                    STOPLOSS_RATIO = 0.9
-                    # set the default STOPLOSS_RATIO to 90% of peak price
-
-                threshold = new_price * float(STOPLOSS_RATIO)
+                threshold = new_price * float(self.stop_loss_ratio)
                 stock.stop_loss_value = threshold
                 stock.peak_value = new_price
+
+
+    def _add_stock(self, new_ticker: str, new_price: float):
+        # method to add new stocks; will throw a Runtime Error if given a stock that already exists
+        new_ticker = new_ticker.upper()
+        with session_manager(self.SessionLocal) as session:
+            stock: Stock = session.scalars(select(Stock.ticker).where(Stock.ticker == new_ticker)).first()
+
+            if stock:
+                raise RuntimeError("Stock already exists!")
+            
+            new_stock = Stock(ticker = new_ticker, current_value = new_price, peak_value = new_price, stop_loss_value = new_price * self.stop_loss_ratio)
+            session.add(new_stock)
+
+    def _remove_stock(self, ticker_to_remove: str):
+        # method to remove a tracked ticker; will throw a Runtime Error if ticker does not exist
+        ticker_to_remove = ticker_to_remove.upper()
+        pass 
+        # TODO: Finish remove stock
+
+
+    @property
+    def stop_loss_ratio(self) -> float:
+        from utils.env_vars import STOPLOSS_RATIO
+
+        if not STOPLOSS_RATIO:
+            STOPLOSS_RATIO = 0.9
+            # set the default STOPLOSS_RATIO to 90% of peak price
+
+        return float(STOPLOSS_RATIO)
+
+        
+
+
+
         
         
     
