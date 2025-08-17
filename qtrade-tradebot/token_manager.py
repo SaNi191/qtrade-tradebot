@@ -7,10 +7,10 @@ from sqlalchemy import select, exc
 from db import session_manager
 
 # Purpose: define a manager for Tokens (TokenManager) that provide an interface with models
-# TODO: use logging instead of print; alert user when expired/error
+# TODO: use logging instead of print; alert user when expired/error; consider abstracting to allow for multiple API tokens
 
 
-# class for managing refresh and access tokens; automatically refresh tokens
+# class for managing QTrade refresh and access tokens; automatically refresh tokens
 # interfaces with SQLAlchemy
 class TokenManager():
     def __init__(self, sessionmaker: sessionmaker):
