@@ -19,11 +19,11 @@ SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 # EmailAlert to handle bot alerts sent with email
 class EmailAlert(BaseAlert):
     def __init__(self) -> None:
-        self.creds = self.get_creds()
+        self.creds = self._get_creds()
         self.service = build('gmail', 'v1', credentials = self.creds)
 
 
-    def get_creds(self):
+    def _get_creds(self):
         # retrieve credentials and return a Credentials instance from API
         creds = None
 
@@ -58,8 +58,7 @@ class EmailAlert(BaseAlert):
         return creds
 
 
-
-    def send_msg(self, msg:str,  recipient:str, subject:str):
+    def send_msg(self, msg:str, recipient:str, subject:str):
         mail = EmailMessage()
 
         # set headers
