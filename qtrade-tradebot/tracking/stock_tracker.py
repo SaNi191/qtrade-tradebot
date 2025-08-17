@@ -67,9 +67,6 @@ class StockTracker():
         email_alerter.send_msg(msg = msg, recipient = EMAIL_TO_NOTIFY, subject = subject)
 
 
-
-
-
     def check_stocks(self) -> None:
         # check tracked stocks using QTradeAPI
         tracked_stocks = self._get_tracked_stock_tickers()
