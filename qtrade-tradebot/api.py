@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 
 
 
-class QTradeAPI:
+class QTradeWorker():
     def __init__(self, sessionmaker: sessionmaker) -> None:
         self.token = TokenManager(sessionmaker)
 

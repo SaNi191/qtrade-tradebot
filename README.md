@@ -1,6 +1,4 @@
 # qtrade-tradebot
-qtrade tradebot
-
 
 
 #### next steps:

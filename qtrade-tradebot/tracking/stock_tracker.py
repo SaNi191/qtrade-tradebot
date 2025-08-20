@@ -2,7 +2,7 @@ from alerts import get_alert_channel
 from alerts.email_utils import EmailAlert
 
 from models import Stock
-from db import session_maker, session_manager
+from db import session_manager
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select
 from typing import Sequence, List, Tuple
@@ -16,6 +16,7 @@ from typing import Sequence, List, Tuple
 class StockTracker():
     def __init__(self, sessionmaker: sessionmaker):
         # SessionLocal stores sessionmaker that creates Sessions connecting to bot.db
+        # pass db.session_maker as sessionmaker
         self.SessionLocal = sessionmaker
 
     
@@ -46,8 +47,8 @@ class StockTracker():
 
     def _alert_stocks(self, stock_list: List[Tuple[Stock, float, float]]):
         # TODO: 
-        # - configure for other notification types, 
-        # - implement user configuration (control which email is notified)
+        # - configure for other notification types
+        # - implement user configuration (to control which email is notified)
 
 
         from utils.env_vars import EMAIL_TO_NOTIFY
