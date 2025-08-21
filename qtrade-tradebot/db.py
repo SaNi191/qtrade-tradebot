@@ -1,6 +1,6 @@
 ### TODO: move engine, session, db initialization to separate module
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, session
 from models import Base
 from contextlib import contextmanager
 
