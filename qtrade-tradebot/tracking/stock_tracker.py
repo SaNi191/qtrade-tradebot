@@ -22,6 +22,9 @@ class StockTracker():
         self.SessionLocal = sessionmaker
         self.stocks_to_alert = []
     
+    def _normalize_ticker(self, ticker: str) -> str:
+        return ticker.strip().upper()
+    
     def get_tracked_stock_tickers(self) -> Sequence:
         # use to get a list of tickers (primary key) for tracked stocks (in database)
         with session_manager(self.SessionLocal) as session:
@@ -60,17 +63,16 @@ class StockTracker():
         subject = "Important: Stop-Loss Alert"
         msg = "Stop-loss Alert!\n"
         send_msg = False
+
         with session_manager(self.SessionLocal) as session:
             # loop through stock_list to alert
-            for stock_ticker in self.stocks_to_alert:
-
-                stock: Stock = session.get(Stock, stock_ticker.upper())
-                
-                if not stock:
-                    raise RuntimeError('Stock not found in db')
-                
-
-                if not stock.last_notified or stock.last_notified - datetime.datetime.now() >= datetime.timedelta(days = 1):
+            stock_list = session.scalars(
+                select(Stock)
+                .where(Stock.ticker.in_(map(self._normalize_ticker, self.stocks_to_alert)))
+            ).all()
+            
+            for stock in stock_list:
+                if not stock.last_notified or  datetime.datetime.now() - stock.last_notified >= datetime.timedelta(days = 1):
                     # only notify a stock once per day
                     stock.last_notified = datetime.datetime.now()
                     send_msg = True
@@ -88,7 +90,7 @@ class StockTracker():
             stock: Stock = session.get(Stock, stock_ticker.upper())
             if not stock:
                 raise RuntimeError("Stock not found in db")
-            
+
             if stock.stop_loss_value > stock_price:
                 # need to alert the stock
                 self.stocks_to_alert.append(stock_ticker.upper())
@@ -102,7 +104,6 @@ class StockTracker():
         new_ticker = new_ticker.upper()
         with session_manager(self.SessionLocal) as session:
             stock: Stock = session.get(Stock, new_ticker)
-
             if stock:
                 raise RuntimeError(f"Stock with ticker {new_ticker} already exists!")
             
@@ -113,55 +114,13 @@ class StockTracker():
         # method to remove a tracked ticker; will throw a Runtime Error if ticker does not exist
         ticker_to_remove = ticker_to_remove.upper()
         with session_manager(self.SessionLocal) as session:
-            stock: Stock = session.get(ticker_to_remove)
+            stock: Stock = session.get(Stock, ticker_to_remove)
             if not stock:
                 raise RuntimeError(f"Stock with ticker {ticker_to_remove} does not exist!")
             session.delete(stock)
 
 
-
     @property
     def stop_loss_ratio(self) -> float:
         from utils.env_vars import STOPLOSS_RATIO
-
-        if not STOPLOSS_RATIO:
-            STOPLOSS_RATIO = 0.9
-            # set the default STOPLOSS_RATIO to 90% of peak price
-
-        return float(STOPLOSS_RATIO)
-
-        
-
-
-
-        
-        
-    
-
-
-    
-            
-
-
-
-
-            
-
-
-
-        
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
+        return float(STOPLOSS_RATIO) if STOPLOSS_RATIO else 0.9
