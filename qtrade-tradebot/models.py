@@ -89,7 +89,7 @@ class Stock(Base):
     current_value:Mapped[float] = mapped_column(Numeric(), nullable = False)
     peak_value:Mapped[float] = mapped_column(Numeric(), nullable = False)
     stop_loss_value:Mapped[float] = mapped_column(Numeric(), nullable = False)
-
+    last_notified: Mapped[datetime.datetime] = mapped_column(DateTime, nullable = True)
 
 
 
