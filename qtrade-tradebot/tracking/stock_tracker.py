@@ -1,3 +1,5 @@
+import datetime
+
 from alerts import get_alert_channel
 from alerts.email_utils import EmailAlert
 
@@ -18,20 +20,19 @@ class StockTracker():
         # SessionLocal stores sessionmaker that creates Sessions connecting to bot.db
         # pass db.session_maker as sessionmaker
         self.SessionLocal = sessionmaker
-
+        self.stocks_to_alert = []
     
-    def _get_tracked_stock_tickers(self) -> Sequence:
+    def get_tracked_stock_tickers(self) -> Sequence:
         # use to get a list of tickers (primary key) for tracked stocks (in database)
         with session_manager(self.SessionLocal) as session:
             return session.scalars(select(Stock.ticker)).unique().all()
 
 
-    def _update_stock(self, ticker: str, new_price: float):
-        # we only want to be able to update stocks internally through StockTracker
+    def _update_stock(self, ticker: str, new_price: float) -> None:
         # specifically for updating previously existing stocks, not for adding new stocks
         ticker = ticker.upper()
         with session_manager(self.SessionLocal) as session:
-            stock: Stock = session.get(ticker)
+            stock: Stock = session.get(Stock, ticker)
             if not stock:
                 raise RuntimeError(f"Stock with ticker {ticker} not found!")
             
@@ -45,11 +46,10 @@ class StockTracker():
                 stock.stop_loss_value = threshold
                 stock.peak_value = new_price
 
-    def _alert_stocks(self, stock_list: List[Tuple[Stock, float, float]]):
+    def alert_stocks(self) -> None:
         # TODO: 
         # - configure for other notification types
         # - implement user configuration (to control which email is notified)
-
 
         from utils.env_vars import EMAIL_TO_NOTIFY
         if not EMAIL_TO_NOTIFY:
@@ -59,34 +59,49 @@ class StockTracker():
         email_alerter = get_alert_channel('email')
         subject = "Important: Stop-Loss Alert"
         msg = "Stop-loss Alert!\n"
+        send_msg = False
+        with session_manager(self.SessionLocal) as session:
+            # loop through stock_list to alert
+            for stock_ticker in self.stocks_to_alert:
 
-        # loop through stock_list to alert
-        for stock_ticker, stop_loss, cur_price in stock_list:
-            msg += f"{stock_ticker} (${cur_price}) (has reached stop-loss threshold of ${stop_loss} \n"
+                stock: Stock = session.get(Stock, stock_ticker.upper())
+                
+                if not stock:
+                    raise RuntimeError('Stock not found in db')
+                
+
+                if not stock.last_notified or stock.last_notified - datetime.datetime.now() >= datetime.timedelta(days = 1):
+                    # only notify a stock once per day
+                    stock.last_notified = datetime.datetime.now()
+                    send_msg = True
+                    msg += f"{stock.ticker} (${stock.current_value}) has reached stop-loss threshold of ${stock.stop_loss_value} \n"
+
+        # if not send_msg then no stocks need to be notified
+        if send_msg:
+            email_alerter.send_msg(msg = msg, recipient = EMAIL_TO_NOTIFY, subject = subject)
+
+        self.stocks_to_alert.clear()
+
+    def check_stock(self, stock_ticker: str, stock_price) -> None:
+        # check given stock then alert 
+        with session_manager(self.SessionLocal) as session:
+            stock: Stock = session.get(Stock, stock_ticker.upper())
+            if not stock:
+                raise RuntimeError("Stock not found in db")
+            
+            if stock.stop_loss_value > stock_price:
+                # need to alert the stock
+                self.stocks_to_alert.append(stock_ticker.upper())
+
+        self._update_stock(stock_ticker, stock_price)
+
         
-
-        email_alerter.send_msg(msg = msg, recipient = EMAIL_TO_NOTIFY, subject = subject)
-
-
-    def check_stocks(self) -> None:
-        # check tracked stocks using QTradeAPI
-        tracked_stocks = self._get_tracked_stock_tickers()
-        stocks_to_alert = []
-
-        # This can be done with a SQLAlchemy command
-        for ticker in tracked_stocks:
-            # TODO: call method from QTradeAPI to get ticker info, then check for stop:loss 
-            # if stop loss exceeded: append to stocks_to_alert
-            # simultaneously: update stock data using self._update_stock()
-            pass
-
-        self._alert_stocks(stocks_to_alert)
     
     def add_stock(self, new_ticker: str, new_price: float) -> None:
         # method to add new stocks; will throw a Runtime Error if given a stock that already exists
         new_ticker = new_ticker.upper()
         with session_manager(self.SessionLocal) as session:
-            stock: Stock = session.get(new_ticker)
+            stock: Stock = session.get(Stock, new_ticker)
 
             if stock:
                 raise RuntimeError(f"Stock with ticker {new_ticker} already exists!")
