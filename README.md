@@ -4,8 +4,8 @@
 #### next steps:
 - [x] create a class to manage QuestTrade API requests
 - [x] other class to manage stocks and database
-- WIP: provide a user interface to be able to add tracked stocks, show stock charts, and set configurations such as emails to alert when stoploss is reached
-- WIP: add other notification/alert types such as telegram/sms
+- [] WIP: provide a user interface to be able to add tracked stocks, show stock charts, and set configurations such as emails to alert when stoploss is reached
+- [] WIP: add other notification/alert types such as telegram/sms
 - ~~modify TokenManager to be more general: currently implements QuestTrade API logic~~
 
 
