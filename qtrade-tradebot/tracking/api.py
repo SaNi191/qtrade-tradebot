@@ -3,13 +3,14 @@ import asyncio
 import logging
 import time
 
-from websockets.exceptions import ConnectionClosed
-from websockets.asyncio.client import connect
-
-from token_manager import TokenManager
-from tracking.stock_tracker import StockManager
+from database.token_manager import TokenManager
+from database.stock_tracker import StockManager
 from sqlalchemy.orm import sessionmaker
 
+''' Websocket not implemented
+from websockets.exceptions import ConnectionClosed
+from websockets.asyncio.client import connect
+'''
 # implementation of QTradeWorker
 # - utilizes both StockTracker and TokenManager
 # - adds async functionality and websocket connection to the QuestTrade API

@@ -1,11 +1,13 @@
-from token_manager import TokenManager
-from db import session_maker
-from tracking.api import QTradeAPI
-from tracking.scheduler import schedule_alert, schedule_checks
-from db import session_maker
 import atexit
 import asyncio
 import logging
+
+from database.token_manager import TokenManager
+from database.db import session_maker
+from tracking.api import QTradeAPI
+from tracking.scheduler import schedule_alert, schedule_checks
+
+
 logger = logging.getLogger(__name__)
 
 @atexit.register
