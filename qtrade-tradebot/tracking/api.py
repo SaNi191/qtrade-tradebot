@@ -76,10 +76,15 @@ class QTradeAPI():
                 result.raise_for_status()
                 result = result.json()
                 if result:
-                    #self.stocks.check_stock()
-                    break
+                    for stock in result['quotes']:
+                        # changed Ticker limitations to allow for a greater 
+                        # range of tickers (ie. > 5 chars)
+                        stock_ticker = stock['symbol']
+                        stock_price = stock['lastTradePrice']
+                        self.stocks.check_stock(stock_ticker, stock_price)
                 else:
-                    raise RuntimeError
+                    logger.error(f'Error: result was empty.')
+                    # will automatically try again
                 
             except requests.HTTPError as e:
                 logger.error(f'Error: {e} occurred while retrieving object, retrying!')
