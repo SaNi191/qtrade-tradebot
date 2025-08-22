@@ -23,7 +23,8 @@ async def main():
     await asyncio.gather(check_task, alert_task)
 
 if __name__ == "__main__":
-    init_db() # initiate any new database models
+    # initiate database models
+    init_db() 
 
     # run main loop
     asyncio.run(main())
