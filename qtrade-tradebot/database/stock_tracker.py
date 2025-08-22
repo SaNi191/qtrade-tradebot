@@ -29,7 +29,6 @@ class StockManager():
         with session_manager(self.SessionLocal) as session:
             return session.scalars(select(Stock.ticker)).unique().all()
 
-
     def _update_stock(self, ticker: str, new_price: float) -> None:
         # specifically for updating previously existing stocks, not for adding new stocks
         ticker = ticker.upper()
@@ -97,7 +96,7 @@ class StockManager():
         self._update_stock(stock_ticker, stock_price)
         
     
-    def add_stock(self, new_ticker: str, new_price: float) -> None:
+    def add_stock(self, new_ticker: str, new_price: float, stock_currency: str) -> None:
         # method to add new stocks; will throw a Runtime Error if given a stock that already exists
         new_ticker = new_ticker.upper()
         with session_manager(self.SessionLocal) as session:
@@ -105,7 +104,14 @@ class StockManager():
             if stock:
                 raise RuntimeError(f"Stock with ticker {new_ticker} already exists!")
             
-            new_stock = Stock(ticker = new_ticker, current_value = new_price, peak_value = new_price, stop_loss_value = new_price * self.stop_loss_ratio)
+            new_stock = Stock(
+                ticker = new_ticker, 
+                current_value = new_price, 
+                peak_value = new_price, 
+                stop_loss_value = new_price * self.stop_loss_ratio,
+                stock_currency = stock_currency
+            )
+
             session.add(new_stock)
 
     def remove_stock(self, ticker_to_remove: str) -> None:

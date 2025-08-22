@@ -16,7 +16,7 @@ from utils.env_vars import ENCRYPTION_KEY
         # id | refresh_token | access_token | expiry_date
     
     # Stock:
-        # ticker (primary key) | current_value | peak_value | stop_loss_threshold | last_notified | symbol
+        # ticker (primary key) | current_value | peak_value | stop_loss_threshold | last_notified 
         # use ticker as primary key as it will always be unique
 
 # define our Base
@@ -74,8 +74,8 @@ class Token(Base):
 # ticker type decorator as exercise
 class Ticker(TypeDecorator):
     impl = String
-    def __init__ (self, length = 5):
-        # tickers have a max length of 5 on major exchanges
+    def __init__ (self, length = 20):
+        # set default length to 20 for more buffer against strange tickers
         super().__init__(length)
         
     def process_bind_param(self, value: str | None, dialect) -> Any:
@@ -91,6 +91,7 @@ class Stock(Base):
     peak_value:Mapped[float] = mapped_column(Numeric(), nullable = False)
     stop_loss_value:Mapped[float] = mapped_column(Numeric(), nullable = False)
     last_notified: Mapped[datetime.datetime] = mapped_column(DateTime, nullable = True)
+    currency: Mapped[str] = mapped_column(String(3), nullable = True, default = "USD")
     
 
 
