@@ -8,7 +8,7 @@
 - [ ] WIP: add other notification/alert types such as telegram/sms
 - [ ] refactor API calls and database operations using asynchronous libraries for better integration with asynchronous code
     - aiohttp, async drivers for sqlalchemy
-- [-] ~~modify TokenManager to be more general: currently implements QuestTrade API logic and less hard-coding~~ 
+- [ ] ~~modify TokenManager to be more general: currently implements QuestTrade API logic and less hard-coding~~ 
 
 
 
