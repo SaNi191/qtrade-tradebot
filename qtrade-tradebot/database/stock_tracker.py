@@ -84,14 +84,15 @@ class StockManager():
 
     def check_stock(self, stock_ticker: str, stock_price) -> None:
         # check given stock then alert 
+        stock_ticker = self._normalize_ticker(stock_ticker)
         with session_manager(self.SessionLocal) as session:
-            stock: Stock = session.get(Stock, stock_ticker.upper())
+            stock: Stock = session.get(Stock, stock_ticker)
             if not stock:
                 raise RuntimeError("Stock not found in db")
 
-            if stock.stop_loss_value > stock_price:
+            if stock.stop_loss_value > stock_price and stock_ticker not in self.stocks_to_alert:
                 # need to alert the stock
-                self.stocks_to_alert.append(stock_ticker.upper())
+                self.stocks_to_alert.append(stock_ticker)
 
         self._update_stock(stock_ticker, stock_price)
         
@@ -105,7 +106,7 @@ class StockManager():
                 raise RuntimeError(f"Stock with ticker {new_ticker} already exists!")
             
             new_stock = Stock(
-                ticker = new_ticker, 
+                ticker = self._normalize_ticker(new_ticker), 
                 current_value = new_price, 
                 peak_value = new_price, 
                 stop_loss_value = new_price * self.stop_loss_ratio,
