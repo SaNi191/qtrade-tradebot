@@ -14,6 +14,11 @@ async def schedule_alert(api_helper: QTradeAPI, delay: int = 86400):
         await asyncio.to_thread(api_helper.stocks.alert_stocks)
         await asyncio.sleep(delay)
 
+'''
+TODO:
+usage of to_thread can be avoided by reworking db and network operations 
+using async-friendly packages/extensions
+'''
 
 
 
