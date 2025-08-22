@@ -3,7 +3,7 @@ import asyncio
 import logging
 
 from database.token_manager import TokenManager
-from database.db import session_maker
+from database.db import session_maker, init_db
 from tracking.api import QTradeAPI
 from tracking.scheduler import schedule_alert, schedule_checks
 
@@ -23,6 +23,9 @@ async def main():
     await asyncio.gather(check_task, alert_task)
 
 if __name__ == "__main__":
+    init_db() # initiate any new database models
+
+    # run main loop
     asyncio.run(main())
 
 
