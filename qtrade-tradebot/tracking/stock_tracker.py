@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 from alerts import get_alert_channel
 from alerts.email_utils import EmailAlert
@@ -9,7 +10,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select
 from typing import Sequence, List, Tuple
 
-
+logger = logging.getLogger(__name__)
 
 # StockTracker: 
 # check tracked stocks (stocks within DB) with QTradeAPI 
@@ -96,7 +97,6 @@ class StockTracker():
                 self.stocks_to_alert.append(stock_ticker.upper())
 
         self._update_stock(stock_ticker, stock_price)
-
         
     
     def add_stock(self, new_ticker: str, new_price: float) -> None:
