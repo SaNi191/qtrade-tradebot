@@ -1,5 +1,6 @@
 import requests
 import datetime
+import logging
 from models import Token
 from utils.env_vars import REFRESH_TOKEN
 from sqlalchemy.orm import sessionmaker, Session
@@ -9,6 +10,7 @@ from db import session_manager
 # Purpose: define a manager for Tokens (TokenManager) that provide an interface with models
 # TODO: use logging instead of print; alert user when expired/error; consider abstracting to allow for multiple API tokens
 
+logger = logging.getLogger(__name__)
 
 # class for managing QTrade refresh and access tokens; automatically refresh tokens
 # interfaces with SQLAlchemy
@@ -24,8 +26,10 @@ class TokenManager():
     def _get_token(self, session: Session) -> Token:
         # helper function to avoid detached instance errors: fetch token from database and load into given session
         # token is unique (primary key id = 1)
-        token = session.scalars(select(Token).filter(Token.id == 1)).one()
-
+        token = session.get(Token, 1)
+        if not token:
+            raise exc.NoResultFound
+        
         return token
 
     # checks if token exists in DB; if a token does not exist, use environment variable to refresh one into db
@@ -55,7 +59,7 @@ class TokenManager():
 
         REFRESH_ADDRESS = 'https://login.questrade.com/oauth2/token?grant_type=refresh_token&refresh_token={token}'
 
-        token_to_use = rf_token or self.refresh_token
+        token_to_use = rf_token or self.get_refresh_token()
         # use property to access refresh_token in case none are given
 
         # query for new refresh + access token
@@ -65,7 +69,7 @@ class TokenManager():
             result.raise_for_status()
 
         except requests.HTTPError:
-            print(f"Error Occurred! Status Code: {result.status_code}")
+            logger.error(f"Error Occurred! Status Code: {result.status_code}")
             raise requests.HTTPError
             # implement logic to notify user via SMS/Email later
 
@@ -76,9 +80,16 @@ class TokenManager():
         session.merge(parsed_token)
         # session_manager will automatically commit
 
+    def get_api_server(self):
+        with session_manager(self.SessionLocal) as session:
+            token:Token = session.get(Token, 1)
+            if not token:
+                raise RuntimeError('No token found.')
+            
+            return token.api_server
+        
     
-    @property
-    def access_token(self):
+    def get_access_token(self):
         # every retrieval of the token should check for expiry 
 
         with session_manager(self.SessionLocal) as session:
@@ -87,7 +98,7 @@ class TokenManager():
             # check for expiry
             if datetime.datetime.now() >= token.expiry_date:
                 # access token is expired: attempt to refresh
-                print("Attempting refresh: access token was expired on: ", token.expiry_date) # for testing purposes
+                logger.info(f"Attempting refresh: access token was expired on: {token.expiry_date}") # for testing purposes
                 
                 self._refresh_tokens(session)
 
@@ -97,9 +108,7 @@ class TokenManager():
         
             return token.access_token 
     
-
-    @property
-    def refresh_token(self):
+    def get_refresh_token(self):
         with session_manager(self.SessionLocal) as session:
             # not going to check refresh token expiry: access_token is the limiting factor
             token = self._get_token(session)
@@ -123,7 +132,8 @@ class TokenManager():
         
         return token
 
-'''
+''' Depreciated methods:
+
     def check_expiry(self):
         # must only be called within sessions where self.token is accessible (not detached)
         if self.token is None:

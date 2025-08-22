@@ -14,7 +14,7 @@ import datetime
         # id | refresh_token | access_token | expiry_date
     
     # Stock:
-        # ticker (primary key) | current_value | peak_value | stop_loss_threshold
+        # ticker (primary key) | current_value | peak_value | stop_loss_threshold | last_notified | symbol
         # use ticker as primary key as it will always be unique
 
 # define our Base
@@ -90,7 +90,9 @@ class Stock(Base):
     peak_value:Mapped[float] = mapped_column(Numeric(), nullable = False)
     stop_loss_value:Mapped[float] = mapped_column(Numeric(), nullable = False)
     last_notified: Mapped[datetime.datetime] = mapped_column(DateTime, nullable = True)
-
+    
+    symbol:Mapped[int] = mapped_column(Numeric(), nullable = True) 
+    # quest trade symbol
 
 
 
