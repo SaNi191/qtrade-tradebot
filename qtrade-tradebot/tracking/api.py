@@ -3,6 +3,7 @@ import asyncio
 import logging
 import time
 
+from typing import List
 from database.token_manager import TokenManager
 from database.stock_tracker import StockManager
 from sqlalchemy.orm import sessionmaker
@@ -61,7 +62,7 @@ class QTradeAPI():
         
         raise RuntimeError('Failed to get response')
     
-    def check_stock_info(self, stock_id) -> None:
+    def check_stock_info(self, id_list: List[int]) -> None:
         end_point = f'https://{self.token.get_api_server}/markets/quotes/'
         headers = self.header
 
@@ -69,7 +70,8 @@ class QTradeAPI():
         for attempt in range(3):
             # arbitrary number of attempts
             try:
-                result = requests.get(end_point, headers = headers, params = {'ids': stock_id})
+                result = requests.get(end_point, headers = headers, params = {'ids': id_list})
+                # will return a dict where the stock key contains a list of stocks given by id
                 time.sleep(0.2)
                 result.raise_for_status()
                 result = result.json()
@@ -88,10 +90,8 @@ class QTradeAPI():
     
     def get_all_stocks(self):
         stock_list = self.stocks.get_tracked_stock_tickers()
-        for stock in stock_list:
-            stock_id = self.get_stock_symbol(stock)
-            self.check_stock_info(stock_id)
-            # get_stock_info
+        id_list = [self.get_stock_symbol(stock) for stock in stock_list]
+        self.check_stock_info(id_list)
 
 
     ''' TODO: complete WebSocket streaming for live data feeds
