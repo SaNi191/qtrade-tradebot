@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 @atexit.register
 def exit_msg():
-    #TODO: email user that bot as quit unexpectedly/from error
+    #TODO: notify user that bot as quit
     logger.info("Program exited!")
 
 async def main():
