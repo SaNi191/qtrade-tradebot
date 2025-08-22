@@ -7,7 +7,7 @@
 - [ ] WIP: provide a user interface to be able to add tracked stocks, show stock charts, and set configurations such as emails to alert when stoploss is reached
 - [ ] WIP: add other notification/alert types such as telegram/sms
 - [ ] refactor API calls and database operations using asynchronous libraries for better integration with asynchronous code
-    - aiohttp, async drivers for sqlalchemy
+    - ie. aiohttp, async drivers for sqlalchemy
 - [ ] ~~modify TokenManager to be more general: currently implements QuestTrade API logic and less hard-coding~~ 
 
 
@@ -16,6 +16,9 @@
 - https://docs.python.org/3/library/smtplib.html
 - https://docs.python.org/3/library/email.examples.html
 - https://docs.sqlalchemy.org
+- https://developers.google.com/workspace/gmail/api/quickstart/python
+- https://medium.com/@moraneus/mastering-pythons-asyncio-a-practical-guide-0a673265cf04
+
 
 
 #### limitations:

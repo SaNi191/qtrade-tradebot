@@ -46,6 +46,7 @@ class QTradeAPI():
             try:
                 result = requests.get(end_point, headers = headers, params = {'prefix' : ticker})
                 time.sleep(0.2)
+
                 result.raise_for_status()
                 result = result.json()
                 if result:
@@ -61,19 +62,19 @@ class QTradeAPI():
         raise RuntimeError('Failed to get response')
     
     def check_stock_info(self, stock_id) -> None:
-        end_point = f'https://{self.token.get_api_server}/symbols/{stock_id}'
+        end_point = f'https://{self.token.get_api_server}/markets/quotes/'
         headers = self.header
 
-        # REST API rate-limit is 20 requests a second 
+        # REST API rate-limit is 20 requests a second; much faster to provide list of stock_ids
         for attempt in range(3):
             # arbitrary number of attempts
             try:
-                result = requests.get(end_point, headers = headers)
+                result = requests.get(end_point, headers = headers, params = {'ids': stock_id})
                 time.sleep(0.2)
                 result.raise_for_status()
                 result = result.json()
                 if result:
-                    self.stocks.check_stock(result['symbols'][0]['symbol'], result['symbols'][0]['prevDayClosingPrice'])
+                    #self.stocks.check_stock()
                     break
                 else:
                     raise RuntimeError
@@ -94,6 +95,7 @@ class QTradeAPI():
 
 
     ''' TODO: complete WebSocket streaming for live data feeds
+
     async def async_get_access_token(self):
         # since token.access_token is a property, use lambda to turn to func
         return await asyncio.to_thread(self.token.get_access_token)
