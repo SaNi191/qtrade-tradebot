@@ -91,8 +91,6 @@ class Stock(Base):
     stop_loss_value:Mapped[float] = mapped_column(Numeric(), nullable = False)
     last_notified: Mapped[datetime.datetime] = mapped_column(DateTime, nullable = True)
     
-    symbol:Mapped[int] = mapped_column(Numeric(), nullable = True) 
-    # quest trade symbol
 
 
 
