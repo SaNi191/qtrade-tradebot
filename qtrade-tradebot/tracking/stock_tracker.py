@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 # check tracked stocks (stocks within DB) with QTradeAPI 
 # then match with DB to check stop loss 
 # finally update values and send alert if threshold met
-class StockTracker():
+class StockManager():
     def __init__(self, sessionmaker: sessionmaker):
         # SessionLocal stores sessionmaker that creates Sessions connecting to bot.db
         # pass db.session_maker as sessionmaker

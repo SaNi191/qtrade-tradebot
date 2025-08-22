@@ -1,12 +1,13 @@
 import requests
 import asyncio
 import logging
+import time
 
 from websockets.exceptions import ConnectionClosed
 from websockets.asyncio.client import connect
 
 from token_manager import TokenManager
-from tracking.stock_tracker import StockTracker
+from tracking.stock_tracker import StockManager
 from sqlalchemy.orm import sessionmaker
 
 # implementation of QTradeWorker
@@ -19,17 +20,84 @@ logger = logging.getLogger(__name__)
 class QTradeAPI():
     def __init__(self, sessionmaker: sessionmaker) -> None:
         self.token = TokenManager(sessionmaker)
-        self.stocks = StockTracker(sessionmaker)
+        self.stocks = StockManager(sessionmaker)
+
+        # for async relating to WebSocket, currently incomplete
         self._running = False
-
-
         self._change_lock = asyncio.Lock()
         self._latest_changes = {}
 
+    @property
+    def header(self):
+        header = {
+            'Authorization': f"Bearer {self.token.get_access_token()}"
+        }
+        return header
+    
+    def get_stock_symbol(self, ticker):
+        # make REST API request to get symbol
+        end_point = f'https://{self.token.get_api_server}/symbols/search'
+        headers = self.header
+        
+        # REST API rate-limit is 20 requests a second 
+        for attempt in range(3):
+            # arbitrary number of attempts
+            try:
+                result = requests.get(end_point, headers = headers, params = {'prefix' : ticker})
+                time.sleep(0.2)
+                result.raise_for_status()
+                result = result.json()
+                if result:
+                    return(result['symbol'][0]['symbolId'])
+                else:
+                    raise RuntimeError
+                
+            except requests.HTTPError as e:
+                logger.error(f'Error: {e} occurred while retrieving object, retrying!')
+                # possible refresh required
+                token = self.token.get_access_token()
+        
+        raise RuntimeError('Failed to get response')
+    
+    def check_stock_info(self, stock_id) -> None:
+        end_point = f'https://{self.token.get_api_server}/symbols/{stock_id}'
+        headers = self.header
+
+        # REST API rate-limit is 20 requests a second 
+        for attempt in range(3):
+            # arbitrary number of attempts
+            try:
+                result = requests.get(end_point, headers = headers)
+                time.sleep(0.2)
+                result.raise_for_status()
+                result = result.json()
+                if result:
+                    self.stocks.check_stock(result['symbols'][0]['symbol'], result['symbols'][0]['prevDayClosingPrice'])
+                    break
+                else:
+                    raise RuntimeError
+                
+            except requests.HTTPError as e:
+                logger.error(f'Error: {e} occurred while retrieving object, retrying!')
+                # possible refresh required
+                token = self.token.get_access_token()
+
+        raise RuntimeError('Failed to get response')
+    
+    def get_all_stocks(self):
+        stock_list = self.stocks.get_tracked_stock_tickers()
+        for stock in stock_list:
+            stock_id = self.get_stock_symbol(stock)
+            self.check_stock_info(stock_id)
+            # get_stock_info
+
+
+    ''' TODO: complete WebSocket streaming for live data feeds
     async def async_get_access_token(self):
         # since token.access_token is a property, use lambda to turn to func
         return await asyncio.to_thread(self.token.get_access_token)
     
+
     async def get_websocket_listener(self):
 
         while self.running:
@@ -52,7 +120,7 @@ class QTradeAPI():
             await asyncio.sleep(300)
             # sleep for 5 minutes
 
-
+    
     async def _start(self):
         self.running = True
         websocket_tast = asyncio.create_task(self.get_websocket_listener())
@@ -62,35 +130,9 @@ class QTradeAPI():
 
     async def _stop(self):
         self.running = False
-    
-    async def get_stock_symbols(self):
-        tracked_stocks = await asyncio.to_thread(self.stocks.get_tracked_stock_tickers)
-        symbols = []
-        token = self.token.get_access_token()
-        for ticker in tracked_stocks:
-            # make REST API request to get symbol
-            end_point = f'https://{self.token.get_api_server}/symbols/search'
-            headers = {
-                'Authorization': f"Bearer {token}"
-            }
-            
-            await asyncio.sleep(0.05)
-            # REST API rate-limit is 20 requests a second 
-            for attempt in range(3):
-                # arbitrary number of attempts
-                try:
-                    result = await asyncio.to_thread(requests.get, end_point, headers = headers, params = {'prefix' : ticker})
-                    await asyncio.sleep(0.2)
-                    result.raise_for_status()
-                    result = result.json()
-                    symbols.append(result['symbol']['symbolId'])
-                    break
-                except requests.HTTPError as e:
-                    logger.error(f'Error: {e} occurred while retrieving object, retrying!')
-                    # possible refresh required
-                    token = self.token.get_access_token()
-            
-        return symbols
+    '''
+
+
             
         
 
