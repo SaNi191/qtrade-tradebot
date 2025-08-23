@@ -1,3 +1,10 @@
+'''
+Utilizes OAuth2 flow
+Note: not to be used unless user 
+has set up google workspace according to the 
+google quickstart guide for authentification
+'''
+
 import os
 import base64
 
@@ -55,7 +62,7 @@ class GmailAlert(BaseAlert):
                 else:
                     raise RuntimeError("Token Path Undefined")
                 
-        # TODO: store token creds in db using token_manager
+
         return creds
 
 
