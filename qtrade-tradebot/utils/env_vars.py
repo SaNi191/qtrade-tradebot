@@ -7,13 +7,25 @@ env_file_path = find_dotenv()
 
 load_dotenv(env_file_path)
 
-REFRESH_TOKEN = os.getenv('refresh_token')
-ENCRYPTION_KEY_STR = os.getenv('encryption_key')
-PATH_TO_TOKEN = os.getenv('TOKEN_PATH')
-PATH_TO_CRED = os.getenv('CRED_PATH')
-BOT_EMAIL = os.getenv('BOT_EMAIL')
-STOPLOSS_RATIO = os.getenv('STOP_LOSS')
-EMAIL_TO_NOTIFY = os.getenv('USER_EMAIL')
+def getenv_strict(env_var) -> str:
+    var = os.getenv(env_var)
+    if not var:
+        raise RuntimeError(f'{env_var} not defined!')
+    else:
+        return var
+
+REFRESH_TOKEN = getenv_strict('refresh_token')
+ENCRYPTION_KEY_STR = getenv_strict('encryption_key')
+PATH_TO_TOKEN = getenv_strict('TOKEN_PATH')
+PATH_TO_CRED = getenv_strict('CRED_PATH')
+BOT_EMAIL = getenv_strict('BOT_EMAIL')
+EMAIL_PASS = getenv_strict('EMAIL_PASSWORD')
+STOPLOSS_RATIO = getenv_strict('STOP_LOSS')
+PROVIDER = getenv_strict('PROVIDER')
+
+# if no notification email is specified: send to self
+EMAIL_TO_NOTIFY = getenv_strict('USER_EMAIL') or BOT_EMAIL
+
 
 if ENCRYPTION_KEY_STR is None:
     # should not occur

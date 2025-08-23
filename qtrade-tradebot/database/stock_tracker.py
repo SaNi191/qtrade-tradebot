@@ -70,7 +70,7 @@ class StockManager():
             ).all()
             
             for stock in stock_list:
-                if not stock.last_notified or  datetime.datetime.now() - stock.last_notified >= datetime.timedelta(days = 1):
+                if not stock.last_notified or datetime.datetime.now() - stock.last_notified >= datetime.timedelta(days = 1):
                     # only notify a stock once per day
                     stock.last_notified = datetime.datetime.now()
                     send_msg = True
