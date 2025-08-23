@@ -16,8 +16,8 @@ def getenv_strict(env_var) -> str:
 
 REFRESH_TOKEN = getenv_strict('refresh_token')
 ENCRYPTION_KEY_STR = getenv_strict('encryption_key')
-PATH_TO_TOKEN = getenv_strict('TOKEN_PATH')
-PATH_TO_CRED = getenv_strict('CRED_PATH')
+PATH_TO_TOKEN = os.getenv('TOKEN_PATH')
+PATH_TO_CRED = os.getenv('CRED_PATH')
 BOT_EMAIL = getenv_strict('BOT_EMAIL')
 EMAIL_PASS = getenv_strict('EMAIL_PASSWORD')
 STOPLOSS_RATIO = getenv_strict('STOP_LOSS')
