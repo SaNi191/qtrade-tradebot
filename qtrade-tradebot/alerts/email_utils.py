@@ -1,13 +1,15 @@
 '''
 Purpose: provide a module for email notifications in more 
 general use, however still requires app passwords and 2FA
+
+Only supports gmail or outlook
 '''
 import smtplib
 import logging
 import ssl
 
 from email.message import EmailMessage
-from alerts.alerts import BaseAlert
+from alerts.base import BaseAlert
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +34,8 @@ class EmailAlert(BaseAlert):
     def __init__(self) -> None:
         from utils.env_vars import EMAIL_PASS, BOT_EMAIL, PROVIDER
         self.valid = False
-        if EMAIL_PASS and BOT_EMAIL:
+
+        if EMAIL_PASS and BOT_EMAIL and PROVIDER:
             self.password = EMAIL_PASS
             self.username = BOT_EMAIL
             self.provider = PROVIDER

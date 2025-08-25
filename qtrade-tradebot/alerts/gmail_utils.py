@@ -15,7 +15,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from googleapiclient.errors import HttpError
-from .alerts import BaseAlert
+from alerts.base import BaseAlert
 
 
 # constants
