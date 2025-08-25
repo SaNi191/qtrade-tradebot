@@ -3,6 +3,8 @@ Utilizes OAuth2 flow
 Note: not to be used unless user 
 has set up google workspace according to the 
 google quickstart guide for authentification
+
+Outdated: use email_utils instead
 '''
 
 import os
@@ -94,10 +96,10 @@ class GmailAlert(BaseAlert):
                 .send(userId = "me", body = create_mail)
                 .execute()
             )
-            return sent_message
+            return True
         except HttpError as err:
             print(f"Error Occurred: {err}")
-            return None
+            return False
 
         # return sent_message
 

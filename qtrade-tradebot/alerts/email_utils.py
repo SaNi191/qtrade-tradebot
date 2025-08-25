@@ -13,6 +13,7 @@ from alerts.base import BaseAlert
 
 logger = logging.getLogger(__name__)
 
+'''
 defaults = {
     "gmail": {
         "host": "smtp.gmail.com",
@@ -23,6 +24,7 @@ defaults = {
         'port': 587
     }
 }
+'''
 
 class EmailAlert(BaseAlert):
     '''
@@ -32,19 +34,26 @@ class EmailAlert(BaseAlert):
     '''
 
     def __init__(self) -> None:
-        from utils.env_vars import EMAIL_PASS, BOT_EMAIL, PROVIDER
-        self.valid = False
+        self.configured = False
 
-        if EMAIL_PASS and BOT_EMAIL and PROVIDER:
-            self.password = EMAIL_PASS
-            self.username = BOT_EMAIL
-            self.provider = PROVIDER
-            self.valid = True
+    
+    def configure(self, username, password, host, port):
+        '''
+        Purpose: provides method to set config values instead of pulling from 
+        environment on initialization. 
+        Assumes that this information will be provided externally and simplifies testing
+        '''
+
+        self.username = username
+        self.password = password
+        self.host = host
+        self.port = port
+        self.configured = True
 
     def send_msg(self, msg: str, recipient: str, subject: str):
-        if not self.valid:
-            logger.error('Invalid setup: either missing mail password or mail username')
-            return
+        if not self.configured:
+            logger.error('Invalid: not yet configured!')
+            return False
     
         mail = EmailMessage()
 
@@ -58,13 +67,20 @@ class EmailAlert(BaseAlert):
 
         # TODO: consider adding some visuals to notification email
 
-        config = defaults[self.provider]
+
         context = ssl.create_default_context()
 
-        with smtplib.SMTP(config['host'], config['port']) as server:
-            server.starttls(context = context)
-            server.login(self.username, self.password)
-            server.send_message(mail)
+        try:
+            with smtplib.SMTP(self.host, self.port) as server:
+                server.starttls(context = context)
+                server.login(self.username, self.password)
+                server.send_message(mail)
+            return True
+    
+        except Exception as e: 
+            logger.error('Error Occurred: {e}')
+            return False
+
         
 
 

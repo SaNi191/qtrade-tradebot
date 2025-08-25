@@ -1,13 +1,21 @@
 import requests
+import logging
 from alerts.base import BaseAlert
+
+logger = logging.getLogger(__name__)
 
 class NTFYAlert(BaseAlert):
     def __init__(self):
-        from utils.env_vars import SUBSCRIBED_CHANNEL
-        self.channel = SUBSCRIBED_CHANNEL
+        self.configured = False
 
-    def send_msg(self, msg:str,  recipient:str, subject:str): 
-        # recipient unused
+    def configure(self, channel):
+        self.channel = channel
+        self.configured = True
+
+    def send_msg(self, msg: str,  recipient: str, subject: str): 
+        if not self.configured:
+            logger.error('Invalid: not yet configured!')
+            return False
 
         header = {
             'Title': subject,
@@ -15,8 +23,10 @@ class NTFYAlert(BaseAlert):
             'Tags': 'rotating_light'
         }
         url = 'https://nfty.sh/{self.channel}'
-        requests.post(url, data = msg, headers = header)
-        
+        response = requests.post(url, data = msg, headers = header)
 
-    def _channel_reminder(self):
-        print('Please provide a NTFY channel in .env')
+        if response.ok:
+            return True
+        else:
+            return False
+        
