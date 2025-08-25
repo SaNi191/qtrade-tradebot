@@ -7,6 +7,10 @@ from database.db import session_maker, init_db
 from tracking.api import QTradeAPI
 from tracking.scheduler import schedule_alert, schedule_checks
 
+logging.basicConfig(
+    level=logging.INFO, 
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
 
 logger = logging.getLogger(__name__)
 

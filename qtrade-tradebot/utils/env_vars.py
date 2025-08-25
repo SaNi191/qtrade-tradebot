@@ -25,7 +25,8 @@ PROVIDER = getenv_strict('PROVIDER')
 
 # if no notification email is specified: send to self
 EMAIL_TO_NOTIFY = getenv_strict('USER_EMAIL') or BOT_EMAIL
-
+SUBSCRIBED_CHANNEL = getenv_strict('NTFY_CHANNEL')
+WEB_HOOK_URL = getenv_strict('WEB_HOOK_URL')
 
 if ENCRYPTION_KEY_STR is None:
     # should not occur

@@ -5,7 +5,7 @@ import logging
 from database.models import Token
 from utils.env_vars import REFRESH_TOKEN
 from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy import select, exc
+from sqlalchemy import exc
 from database.db import session_manager
 
 # Purpose: define a manager for Tokens (TokenManager) that provide an interface with models
