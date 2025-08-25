@@ -1,4 +1,3 @@
-# TODO: add SMSALert functionality
 import requests
 from alerts.base import BaseAlert
 
