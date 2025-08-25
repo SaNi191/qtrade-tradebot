@@ -1,10 +1,10 @@
-from .email_utils import EmailAlert
-from .sms_utils import SMSAlert
-from alerts import BaseAlert
+from alerts.email_utils import EmailAlert
+from alerts.push_utils import NTFYAlert
+from alerts.base import BaseAlert
 
 alert_channels: dict[str, type[BaseAlert]] = {
     "email": EmailAlert,
-    "sms": SMSAlert,
+    "push": NTFYAlert,
 }
     
 
