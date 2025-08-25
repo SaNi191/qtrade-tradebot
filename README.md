@@ -5,9 +5,10 @@
 - [x] create a class to manage QuestTrade API requests
 - [x] other class to manage stocks and database
 - [ ] WIP: provide a user interface to be able to add tracked stocks, show stock charts, and set configurations such as emails to alert when stoploss is reached
-- [ ] WIP: add other notification/alert types such as telegram/sms
+- [x] WIP: add other notification/alert types such as telegram/sms
 - [ ] refactor API calls and database operations using asynchronous libraries for better integration with asynchronous code
     - ie. aiohttp, async drivers for sqlalchemy
+- [ ] rework environment variable system to be more easily configurable and secure
 - [ ] ~~modify TokenManager to be more general: currently implements QuestTrade API logic and less hard-coding~~ 
 
 
