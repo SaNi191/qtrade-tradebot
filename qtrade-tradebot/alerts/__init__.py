@@ -6,14 +6,17 @@ from alerts.base import BaseAlert
 # TODO: rework using alerts.handler 
 # to provide a common interface for all alert types
 
-alert_channels: dict[str, type[BaseAlert]] = {
+
+'''
+Used
+'''
+alert_channels = {
     "email": EmailAlert,
     "push": NTFYAlert,
     'discord': DiscordAlert
 }
-    
 
-def get_alert_channel(channel:str) -> BaseAlert:
+def get_alert_channel(channel:str):
     # call with desired channel to obtain the associated alerter
     try:
         # get type from alert_channels then init
