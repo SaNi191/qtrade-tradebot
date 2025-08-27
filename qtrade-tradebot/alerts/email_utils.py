@@ -34,7 +34,7 @@ class EmailAlert(BaseAlert):
     '''
 
     def __init__(self) -> None:
-        self.configured = False
+        self._configured = False
 
     
     def configure(self, username, password, host, port):
@@ -44,14 +44,14 @@ class EmailAlert(BaseAlert):
         Assumes that this information will be provided externally and simplifies testing
         '''
 
-        self.username = username
-        self.password = password
-        self.host = host
-        self.port = port
-        self.configured = True
+        self._username = username
+        self._password = password
+        self._host = host
+        self._port = port
+        self._configured = True
 
     def send_msg(self, msg: str, recipient: str, subject: str):
-        if not self.configured:
+        if not self._configured:
             logger.error('Invalid: not yet configured!')
             return False
     
@@ -59,7 +59,7 @@ class EmailAlert(BaseAlert):
 
         # set headers
         mail['To'] = recipient
-        mail['From'] = self.username 
+        mail['From'] = self._username 
         mail['Subject'] = subject
         
         # set content
@@ -71,9 +71,9 @@ class EmailAlert(BaseAlert):
         context = ssl.create_default_context()
 
         try:
-            with smtplib.SMTP(self.host, self.port) as server:
+            with smtplib.SMTP(self._host, self._port) as server:
                 server.starttls(context = context)
-                server.login(self.username, self.password)
+                server.login(self._username, self._password)
                 server.send_message(mail)
             return True
     
