@@ -98,6 +98,25 @@ class QTradeAPI():
         id_list = [self.get_stock_symbol(stock) for stock in stock_list]
         self.check_stock_info(id_list)
 
+    def match_stocks(self):
+        '''
+        use to match stocks tracked to those in user portfolio
+        will not remove stocks from tracking if not present in user portfolio
+        
+        NOT IMPLEMENTED
+        '''
+        pass
+
+
+
+
+
+
+
+
+
+
+
 
     ''' TODO: complete WebSocket streaming for live data feeds
 

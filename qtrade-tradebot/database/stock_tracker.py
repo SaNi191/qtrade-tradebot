@@ -129,3 +129,6 @@ class StockManager():
     def stop_loss_ratio(self) -> float:
         from utils.env_vars import STOPLOSS_RATIO
         return float(STOPLOSS_RATIO) if STOPLOSS_RATIO else 0.9
+    
+
+    
