@@ -4,6 +4,7 @@ general use, however still requires app passwords and 2FA
 
 Only supports gmail or outlook
 '''
+
 import smtplib
 import logging
 import ssl

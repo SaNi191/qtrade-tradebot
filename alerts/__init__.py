@@ -7,9 +7,8 @@ from alerts.base import BaseAlert
 # to provide a common interface for all alert types
 
 
-'''
-Used
-'''
+
+
 alert_channels = {
     "email": EmailAlert,
     "push": NTFYAlert,
