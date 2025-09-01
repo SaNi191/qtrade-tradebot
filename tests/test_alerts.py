@@ -1,8 +1,10 @@
+'''
+tests generated using genAI
+'''
+
 # tests/test_alerts.py
 import pytest
 import logging
-import os
-import sys
 
 from unittest.mock import patch, MagicMock
 
