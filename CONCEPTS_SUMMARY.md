@@ -107,7 +107,7 @@ async def schedule_checks(api_helper, delay=300):
 ## Key Design Patterns
 
 ### 1. Repository Pattern
-- `StockManager` and `TokenManager` act as repositories
+- `StockManager` and `TokenManager` act as interfaces for database access
 - Encapsulate database operations behind clean interfaces
 - Handle session management automatically
 
