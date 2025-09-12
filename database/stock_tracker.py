@@ -29,6 +29,21 @@ class StockManager():
         with session_manager(self.SessionLocal) as session:
             return session.scalars(select(Stock.ticker)).unique().all()
 
+    def get_symbol_id_for(self, ticker: str) -> int | None:
+        ticker = self._normalize_ticker(ticker)
+        with session_manager(self.SessionLocal) as session:
+            stock: Stock = session.get(Stock, ticker)
+            return stock.symbol_id if stock else None
+
+    def set_symbol_id_for(self, ticker: str, symbol_id: int) -> None:
+        ticker = self._normalize_ticker(ticker)
+        with session_manager(self.SessionLocal) as session:
+            stock: Stock = session.get(Stock, ticker)
+            if not stock:
+                logger.warning(f"Stock with ticker {ticker} not found!")
+                return
+            stock.symbol_id = symbol_id
+
     def _update_stock(self, ticker: str, new_price: float) -> None:
         # specifically for updating previously existing stocks, not for adding new stocks
         ticker = ticker.upper()
@@ -110,7 +125,7 @@ class StockManager():
                 current_value = new_price, 
                 peak_value = new_price, 
                 stop_loss_value = new_price * self.stop_loss_ratio,
-                stock_currency = stock_currency
+                currency = stock_currency
             )
 
             session.add(new_stock)
