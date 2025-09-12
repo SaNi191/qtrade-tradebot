@@ -2,7 +2,7 @@ import datetime
 
 from typing import Any
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy.types import LargeBinary, TypeDecorator, Numeric, String
+from sqlalchemy.types import LargeBinary, TypeDecorator, Numeric, String, Integer
 from sqlalchemy import DateTime, Dialect
 from cryptography.fernet import Fernet
 from utils.env_vars import ENCRYPTION_KEY
@@ -87,6 +87,8 @@ class Stock(Base):
 
     # use the ticker as primary key
     ticker:Mapped[str] = mapped_column(Ticker, primary_key = True)
+    # optional cache for Questrade symbolId
+    symbol_id: Mapped[int | None] = mapped_column(Integer, nullable = True)
     current_value:Mapped[float] = mapped_column(Numeric(), nullable = False)
     peak_value:Mapped[float] = mapped_column(Numeric(), nullable = False)
     stop_loss_value:Mapped[float] = mapped_column(Numeric(), nullable = False)
