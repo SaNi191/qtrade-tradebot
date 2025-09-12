@@ -276,10 +276,11 @@ class QTradeAPI():
 
     def add_tracked_stock(self, ticker: str, currency: str | None = None) -> None:
         """Add a new tracked stock by ticker. Resolves symbolId, fetches current price, and caches symbolId."""
-        norm = ticker.strip().upper()
-        sym_id = self.stocks.get_symbol_id_for(norm)
+        # normalize the ticker
+        ticker = ticker.strip().upper() 
+        sym_id = self.stocks.get_symbol_id_for(ticker)
         if sym_id is None:
-            sym_id = self.get_stock_symbol(norm)
+            sym_id = self.get_stock_symbol(ticker)
             try:
                 self.stocks.set_symbol_id_for(norm, sym_id)
             except Exception:
@@ -301,10 +302,9 @@ class QTradeAPI():
 
     def remove_tracked_stock(self, ticker: str) -> None:
         """Remove a tracked stock by ticker."""
+        logger.info(f"Removing tracked stock: {ticker}")
         self.stocks.remove_stock(ticker)
-
-
-
+        logger.info(f"Successfully removed tracked stock: {ticker}")
 
 
 
