@@ -103,7 +103,7 @@ class TokenManager():
                 
                 self._refresh_tokens(session)
 
-                session.refresh()
+                session.refresh(token)
                 
                 
         
