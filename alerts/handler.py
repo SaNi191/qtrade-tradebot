@@ -39,7 +39,7 @@ class AlertConfig:
         ])
     
     @property
-    def nfty_valid(self):
+    def ntfy_valid(self):
         return self.ntfy_topic is not None
     
     @property
@@ -52,6 +52,7 @@ class Alerts:
         self.email: EmailAlert = get_alert_channel('email')
         self.discord: DiscordAlert = get_alert_channel('discord')
         self.push: NTFYAlert = get_alert_channel('push')
+        self.config: AlertConfig | None = None
 
     def send_msg(self, msg, recipient, subject):
         '''
@@ -75,9 +76,9 @@ class Alerts:
 
             self.email.send_msg(msg, recipient, subject)
         
-        if cfg.nfty_valid:
+        if cfg.ntfy_valid:
             self.push.configure(cfg.ntfy_topic)
-            self.email.send_msg(msg, recipient, subject)
+            self.push.send_msg(msg, recipient, subject)
 
     def set_config(self, config: AlertConfig):
         '''
@@ -85,4 +86,3 @@ class Alerts:
         then send config to set_config to configure channels
         '''
         self.config = config
-

@@ -3,9 +3,9 @@ import datetime
 from typing import Any
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.types import LargeBinary, TypeDecorator, Numeric, String, Integer
-from sqlalchemy import DateTime, Dialect
+from sqlalchemy import DateTime
 from cryptography.fernet import Fernet
-from utils.env_vars import ENCRYPTION_KEY
+from utils.env_vars import get_settings
 
 
 # Purpose: define database models for SQLAlchemy
@@ -29,10 +29,18 @@ class EncryptedToken(TypeDecorator):
     # indicates that LargeBinary is the class to be built upon and stored within DB
     cache_ok = True
 
-    def __init__(self, key: bytes):
-        # passed to EncryptedToken from environment variable
+    def __init__(self):
         super().__init__()
-        self.fernet_key = Fernet(key)
+        self._fernet_key = None
+        self._raw_key = None
+
+    @property
+    def fernet_key(self):
+        key = get_settings().require_encryption_key()
+        if self._fernet_key is None or key != self._raw_key:
+            self._fernet_key = Fernet(key)
+            self._raw_key = key
+        return self._fernet_key
 
     # process for binding to EncryptedToken
     def process_bind_param(self, value: str | None, dialect):
@@ -57,9 +65,9 @@ class Token(Base):
     id:Mapped[int] = mapped_column(primary_key = True)
 
     # encrypted token value by key stored as environment variable
-    refresh_token:Mapped[str] = mapped_column(EncryptedToken(ENCRYPTION_KEY), nullable = False)
+    refresh_token:Mapped[str] = mapped_column(EncryptedToken(), nullable = False)
     # maps str to EncryptedToken (overridden class)
-    access_token: Mapped[str] = mapped_column(EncryptedToken(ENCRYPTION_KEY), nullable = False)
+    access_token: Mapped[str] = mapped_column(EncryptedToken(), nullable = False)
     # Tokens will not store the bootstrap case requiring manual authentification    
     api_server: Mapped[str] = mapped_column(nullable = False)
     # nullable as refresh tokens are one-time-use thus expiry_date is not relevant
@@ -95,6 +103,5 @@ class Stock(Base):
     last_notified: Mapped[datetime.datetime] = mapped_column(DateTime, nullable = True)
     currency: Mapped[str] = mapped_column(String(3), nullable = True, default = "USD")
     
-
 
 

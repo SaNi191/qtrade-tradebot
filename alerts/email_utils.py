@@ -14,8 +14,7 @@ from alerts.base import BaseAlert
 
 logger = logging.getLogger(__name__)
 
-'''
-defaults = {
+DEFAULT_SMTP_SETTINGS = {
     "gmail": {
         "host": "smtp.gmail.com",
         'port': 587
@@ -25,7 +24,6 @@ defaults = {
         'port': 587
     }
 }
-'''
 
 class EmailAlert(BaseAlert):
     '''
@@ -50,6 +48,21 @@ class EmailAlert(BaseAlert):
         self._host = host
         self._port = port
         self._configured = True
+
+    def configure_from_provider(self, provider, username, password):
+        if not provider:
+            raise RuntimeError("Email provider is not configured.")
+
+        provider_settings = DEFAULT_SMTP_SETTINGS.get(provider.lower())
+        if not provider_settings:
+            raise RuntimeError(f"Unsupported email provider: {provider}")
+
+        self.configure(
+            username=username,
+            password=password,
+            host=provider_settings["host"],
+            port=provider_settings["port"],
+        )
 
     def send_msg(self, msg: str, recipient: str, subject: str):
         if not self._configured:
@@ -79,11 +92,9 @@ class EmailAlert(BaseAlert):
             return True
     
         except Exception as e: 
-            logger.error('Error Occurred: {e}')
+            logger.error(f'Error Occurred: {e}')
             return False
 
         
-
-
 
 

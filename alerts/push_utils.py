@@ -22,7 +22,7 @@ class NTFYAlert(BaseAlert):
             'Priority': 'high',
             'Tags': 'rotating_light'
         }
-        url = 'https://nfty.sh/{self.channel}'
+        url = f'https://ntfy.sh/{self._channel}'
         response = requests.post(url, data = msg, headers = header)
 
         if response.ok:

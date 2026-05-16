@@ -3,7 +3,7 @@ import datetime
 import logging
 
 from database.models import Token
-from utils.env_vars import REFRESH_TOKEN
+from utils.env_vars import get_settings
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy import exc
 from database.db import session_manager
@@ -12,6 +12,7 @@ from database.db import session_manager
 # TODO: use logging instead of print; alert user when expired/error; consider abstracting to allow for multiple API tokens
 
 logger = logging.getLogger(__name__)
+TOKEN_REFRESH_TIMEOUT = 15
 
 # class for managing QTrade refresh and access tokens; automatically refresh tokens
 # interfaces with SQLAlchemy
@@ -45,10 +46,7 @@ class TokenManager():
                 # exception will occur if no token was in db
                 # no token in database: grab from environment variable (likely expired)
                 # will need to check for expiry separately
-                from utils.env_vars import REFRESH_TOKEN
-
-                # refresh_tokens to get new pair; refresh_tokens will set self.token
-                self._refresh_tokens(session, rf_token = REFRESH_TOKEN)
+                self._refresh_tokens(session, rf_token=get_settings().require_refresh_token())
             except:
                 raise
                 
@@ -61,24 +59,32 @@ class TokenManager():
         REFRESH_ADDRESS = 'https://login.questrade.com/oauth2/token?grant_type=refresh_token&refresh_token={token}'
 
         token_to_use = rf_token or self.get_refresh_token()
+        if not token_to_use:
+            raise RuntimeError("No refresh token available.")
         # use property to access refresh_token in case none are given
 
         # query for new refresh + access token
-        result = requests.get(REFRESH_ADDRESS.format(token = token_to_use))
+        result = requests.get(REFRESH_ADDRESS.format(token = token_to_use), timeout=TOKEN_REFRESH_TIMEOUT)
             
         try:
             result.raise_for_status()
 
         except requests.HTTPError:
             logger.error(f"Error Occurred! Status Code: {result.status_code}")
-            raise requests.HTTPError
+
+
+            if result.status_code == 400:
+                logger.error(f"Your refresh token is missing or expired!")
+
+
+            raise
             # implement logic to notify user via SMS/Email later
 
 
         parsed_token = self._parse_result(result)
         # parse_result returns a Token object to be commited to session
 
-        session.merge(parsed_token)
+        return session.merge(parsed_token)
         # session_manager will automatically commit
 
     def get_api_server(self):
@@ -101,9 +107,7 @@ class TokenManager():
                 # access token is expired: attempt to refresh
                 logger.info(f"Attempting refresh: access token was expired on: {token.expiry_date}") # for testing purposes
                 
-                self._refresh_tokens(session)
-
-                session.refresh(token)
+                token = self._refresh_tokens(session, rf_token=token.refresh_token)
                 
                 
         
@@ -118,10 +122,6 @@ class TokenManager():
 
     def _parse_result(self, result) -> Token:
         json_results = result.json()
-        
-        # print results for troubleshooting
-        print(json_results)
-
 
         token = Token(
             id = 1, # primary key: always 1 

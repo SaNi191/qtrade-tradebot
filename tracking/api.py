@@ -18,6 +18,7 @@ from websockets.asyncio.client import connect
 
 
 logger = logging.getLogger(__name__)
+REQUEST_TIMEOUT = 15
 
 class QTradeAPI():
     def __init__(self, sessionmaker: sessionmaker) -> None:
@@ -38,24 +39,31 @@ class QTradeAPI():
     
     def get_stock_symbol(self, ticker):
         # make REST API request to get symbol
-        end_point = f'https://{self.token.get_api_server}/symbols/search'
+        ticker = ticker.strip().upper()
+        end_point = f'{self._base_url()}/v1/symbols/search'
         headers = self.header
         
         # REST API rate-limit is 20 requests a second 
         for attempt in range(3):
             # arbitrary number of attempts
             try:
-                result = requests.get(end_point, headers = headers, params = {'prefix' : ticker})
+                result = requests.get(
+                    end_point,
+                    headers=headers,
+                    params={'prefix': ticker},
+                    timeout=REQUEST_TIMEOUT,
+                )
                 time.sleep(0.2)
 
                 result.raise_for_status()
                 result = result.json()
-                if result:
-                    return(result['symbol'][0]['symbolId'])
+                symbols = result.get('symbols') or result.get('symbol') or []
+                if symbols:
+                    return symbols[0]['symbolId']
                 else:
-                    raise RuntimeError
+                    raise RuntimeError(f"No Questrade symbol found for {ticker}.")
                 
-            except requests.HTTPError as e:
+            except requests.RequestException as e:
                 logger.error(f'Error: {e} occurred while retrieving object, retrying!')
                 # possible refresh required
                 token = self.token.get_access_token()
@@ -63,24 +71,35 @@ class QTradeAPI():
         raise RuntimeError('Failed to get response')
     
     def check_stock_info(self, id_list: List[int]) -> None:
-        end_point = f'https://{self.token.get_api_server}/markets/quotes/'
+        if not id_list:
+            return
+
+        end_point = f'{self._base_url()}/v1/markets/quotes/'
         headers = self.header
 
         # REST API rate-limit is 20 requests a second; much more efficient to provide list of stock_ids
         for attempt in range(3):
             # arbitrary number of attempts
             try:
-                result = requests.get(end_point, headers = headers, params = {'ids': id_list})
+                result = requests.get(
+                    end_point,
+                    headers=headers,
+                    params={'ids': ",".join(map(str, id_list))},
+                    timeout=REQUEST_TIMEOUT,
+                )
                 # will return a dict where the stock key contains a list of stocks given by id
                 time.sleep(0.2)
                 result.raise_for_status()
                 result = result.json()
                 if result:
-                    for stock in result['quotes']:
+                    for stock in result.get('quotes', []):
                         # changed Ticker limitations to allow for a greater 
                         # range of tickers (ie. > 5 chars)
                         stock_ticker = stock['symbol']
-                        stock_price = stock['lastTradePrice']
+                        stock_price = self._quote_price(stock)
+                        if stock_price is None:
+                            logger.warning(f"Skipping {stock_ticker}: quote did not include a usable price.")
+                            continue
                         # cache symbol id when present
                         try:
                             sym_id = stock.get('symbolId')
@@ -89,11 +108,12 @@ class QTradeAPI():
                         except Exception:
                             pass
                         self.stocks.check_stock(stock_ticker, stock_price)
+                    return
                 else:
                     logger.error(f'Error: result was empty.')
                     # will automatically try again
                 
-            except requests.HTTPError as e:
+            except requests.RequestException as e:
                 logger.error(f'Error: {e} occurred while retrieving object, retrying!')
                 # possible refresh required
                 token = self.token.get_access_token()
@@ -125,21 +145,27 @@ class QTradeAPI():
     # Questrade account integration
     # -----------------------------
     def _base_url(self) -> str:
-        return f"https://{self.token.get_api_server()}"
+        get_api_server = self.token.get_api_server
+        api_server = get_api_server() if callable(get_api_server) else get_api_server
+        api_server = str(api_server).rstrip("/")
+        if api_server.startswith(("http://", "https://")):
+            return api_server.removesuffix("/v1")
+        return f"https://{api_server.removesuffix('/v1')}"
 
     def _get(self, path: str, params: Dict[str, Any] | None = None) -> Dict[str, Any]:
         url = f"{self._base_url()}{path}"
         headers = self.header
         for attempt in range(3):
+            resp = None
             try:
-                resp = requests.get(url, headers=headers, params=params)
+                resp = requests.get(url, headers=headers, params=params, timeout=REQUEST_TIMEOUT)
                 time.sleep(0.2)
                 resp.raise_for_status()
                 return resp.json()
-            except requests.HTTPError as e:
+            except requests.RequestException as e:
                 logger.error(f"GET {path} failed: {e}; attempt {attempt+1}/3")
                 # force token refresh on 401
-                if resp.status_code == 401:
+                if resp is not None and resp.status_code == 401:
                     _ = self.token.get_access_token()
         raise RuntimeError(f"Failed to GET {path}")
 
@@ -177,6 +203,10 @@ class QTradeAPI():
                 batch = []
         if batch:
             yield batch
+
+    def _quote_price(self, quote: Dict[str, Any]) -> float | None:
+        price = quote.get("lastTradePrice") or quote.get("bidPrice") or quote.get("askPrice")
+        return float(price) if price is not None else None
 
     def lookup_symbol_ids(self, tickers: List[str]) -> Dict[str, int]:
         # Use symbols/search per ticker due to API; cache as needed
@@ -225,17 +255,25 @@ class QTradeAPI():
         prices: Dict[int, float] = {}
         for chunk in self._batch(ids, 50):
             for attempt in range(3):
+                resp = None
                 try:
-                    resp = requests.get(quotes_url, headers=headers, params={"ids": ",".join(map(str, chunk))})
+                    resp = requests.get(
+                        quotes_url,
+                        headers=headers,
+                        params={"ids": ",".join(map(str, chunk))},
+                        timeout=REQUEST_TIMEOUT,
+                    )
                     time.sleep(0.2)
                     resp.raise_for_status()
                     data = resp.json()
                     for q in data.get("quotes", []):
-                        prices[q["symbolId"]] = q.get("lastTradePrice") or q.get("bidPrice") or q.get("askPrice") or 0.0
+                        price = self._quote_price(q)
+                        if price is not None:
+                            prices[q["symbolId"]] = price
                     break
-                except requests.HTTPError as e:
+                except requests.RequestException as e:
                     logger.error(f"quotes fetch failed: {e}")
-                    if resp.status_code == 401:
+                    if resp is not None and resp.status_code == 401:
                         _ = self.token.get_access_token()
 
         # Add to DB
@@ -260,17 +298,23 @@ class QTradeAPI():
         result: Dict[int, Dict[str, Any]] = {}
         for chunk in self._batch(ids, 50):
             for attempt in range(3):
+                resp = None
                 try:
-                    resp = requests.get(quotes_url, headers=headers, params={"ids": ",".join(map(str, chunk))})
+                    resp = requests.get(
+                        quotes_url,
+                        headers=headers,
+                        params={"ids": ",".join(map(str, chunk))},
+                        timeout=REQUEST_TIMEOUT,
+                    )
                     time.sleep(0.2)
                     resp.raise_for_status()
                     data = resp.json()
                     for q in data.get("quotes", []):
                         result[q["symbolId"]] = q
                     break
-                except requests.HTTPError as e:
+                except requests.RequestException as e:
                     logger.error(f"quotes fetch failed: {e}")
-                    if resp.status_code == 401:
+                    if resp is not None and resp.status_code == 401:
                         _ = self.token.get_access_token()
         return result
 
@@ -281,22 +325,19 @@ class QTradeAPI():
         sym_id = self.stocks.get_symbol_id_for(ticker)
         if sym_id is None:
             sym_id = self.get_stock_symbol(ticker)
-            try:
-                self.stocks.set_symbol_id_for(norm, sym_id)
-            except Exception:
-                # if not present yet, StockManager.add_stock will create, then we can set id after
-                pass
 
         quotes = self._get_quotes_by_ids([sym_id])
         q = quotes.get(sym_id, {})
-        price = q.get("lastTradePrice") or q.get("bidPrice") or q.get("askPrice") or 0.0
+        price = self._quote_price(q)
+        if price is None:
+            raise RuntimeError(f"Could not get a usable quote price for {ticker}.")
         use_currency = currency or q.get("currency") or "USD"
 
         # add to DB
-        self.stocks.add_stock(norm, float(price), str(use_currency).upper())
+        self.stocks.add_stock(ticker, float(price), str(use_currency).upper())
         # ensure cache persisted
         try:
-            self.stocks.set_symbol_id_for(norm, int(sym_id))
+            self.stocks.set_symbol_id_for(ticker, int(sym_id))
         except Exception:
             pass
 

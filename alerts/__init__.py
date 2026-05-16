@@ -21,4 +21,4 @@ def get_alert_channel(channel:str):
         # get type from alert_channels then init
         return alert_channels[channel]()
     except KeyError:
-        raise RuntimeError("Invalid channel: {channel}")
+        raise RuntimeError(f"Invalid channel: {channel}")

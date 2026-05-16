@@ -2,10 +2,10 @@ import atexit
 import asyncio
 import logging
 
-from database.token_manager import TokenManager
 from database.db import session_maker, init_db
 from tracking.api import QTradeAPI
 from tracking.scheduler import schedule_alert, schedule_checks
+from utils.env_vars import get_settings
 
 logging.basicConfig(
     level=logging.INFO, 
@@ -27,18 +27,10 @@ async def main():
     await asyncio.gather(check_task, alert_task)
 
 if __name__ == "__main__":
-    # initiate database models
-    init_db() 
-
-    # run main loop
-    asyncio.run(main())
-
-
-
-# testing
-
-token = TokenManager(session_maker)
-
-logger.info(f'refresh token: {token.get_refresh_token()}')
-logger.info(f'access token: {token.get_access_token()}')
-
+    try:
+        get_settings().validate_startup()
+        init_db()
+        asyncio.run(main())
+    except RuntimeError as exc:
+        logger.error(f"Startup failed: {exc}")
+        raise SystemExit(1) from exc

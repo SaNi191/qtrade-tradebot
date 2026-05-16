@@ -7,6 +7,7 @@ from database.db import session_manager
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select
 from typing import Sequence
+from utils.env_vars import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -47,32 +48,31 @@ class StockManager():
     def _update_stock(self, ticker: str, new_price: float) -> None:
         # specifically for updating previously existing stocks, not for adding new stocks
         ticker = ticker.upper()
+        price = float(new_price)
         with session_manager(self.SessionLocal) as session:
             stock: Stock = session.get(Stock, ticker)
             if not stock:
                 raise RuntimeError(f"Stock with ticker {ticker} not found!")
             
             # update current value
-            stock.current_value = new_price
+            stock.current_value = price
 
             # if new value is greater than the peak value update stop loss thresholds
-            if stock.peak_value < new_price:
+            if float(stock.peak_value) < price:
                 # update new peak_value
-                threshold = new_price * float(self.stop_loss_ratio)
+                threshold = price * float(self.stop_loss_ratio)
                 stock.stop_loss_value = threshold
-                stock.peak_value = new_price
+                stock.peak_value = price
 
     def alert_stocks(self) -> None:
         # TODO: 
         # - configure for other notification types
         # - implement user configuration (to control which email is notified)
 
-        from utils.env_vars import EMAIL_TO_NOTIFY
-        if not EMAIL_TO_NOTIFY:
-            raise RuntimeError("No Email Provided!")
-        
+        if not self.stocks_to_alert:
+            return
 
-        email_alerter = get_alert_channel('email')
+        settings = get_settings()
         subject = "Important: Stop-Loss Alert"
         msg = "Stop-loss Alert!\n"
         send_msg = False
@@ -93,39 +93,55 @@ class StockManager():
 
         # if not send_msg then no stocks need to be notified
         if send_msg:
-            email_alerter.send_msg(msg = msg, recipient = EMAIL_TO_NOTIFY, subject = subject)
+            settings.require_email_settings()
+            email_alerter = get_alert_channel('email')
+            email_alerter.configure_from_provider(
+                settings.email_provider,
+                settings.bot_email,
+                settings.email_password,
+            )
+            email_alerter.send_msg(msg = msg, recipient = settings.email_to_notify, subject = subject)
 
         self.stocks_to_alert.clear()
 
     def check_stock(self, stock_ticker: str, stock_price) -> None:
         # check given stock then alert 
         stock_ticker = self._normalize_ticker(stock_ticker)
+        if stock_price is None:
+            logger.warning(f"Skipping {stock_ticker}: quote did not include a usable price.")
+            return
+
+        price = float(stock_price)
         with session_manager(self.SessionLocal) as session:
             stock: Stock = session.get(Stock, stock_ticker)
             if not stock:
                 raise RuntimeError("Stock not found in db")
 
-            if stock.stop_loss_value > stock_price and stock_ticker not in self.stocks_to_alert:
+            if float(stock.stop_loss_value) > price and stock_ticker not in self.stocks_to_alert:
                 # need to alert the stock
                 self.stocks_to_alert.append(stock_ticker)
 
-        self._update_stock(stock_ticker, stock_price)
+        self._update_stock(stock_ticker, price)
         
     
     def add_stock(self, new_ticker: str, new_price: float, stock_currency: str) -> None:
         # method to add new stocks; will throw a Runtime Error if given a stock that already exists
-        new_ticker = new_ticker.upper()
+        new_ticker = self._normalize_ticker(new_ticker)
+        if not new_ticker:
+            raise RuntimeError("Ticker cannot be empty.")
+
+        price = float(new_price)
         with session_manager(self.SessionLocal) as session:
             stock: Stock = session.get(Stock, new_ticker)
             if stock:
                 raise RuntimeError(f"Stock with ticker {new_ticker} already exists!")
             
             new_stock = Stock(
-                ticker = self._normalize_ticker(new_ticker), 
-                current_value = new_price, 
-                peak_value = new_price, 
-                stop_loss_value = new_price * self.stop_loss_ratio,
-                currency = stock_currency
+                ticker = new_ticker,
+                current_value = price,
+                peak_value = price,
+                stop_loss_value = price * self.stop_loss_ratio,
+                currency = (stock_currency or "USD").upper()
             )
 
             session.add(new_stock)
@@ -142,8 +158,7 @@ class StockManager():
 
     @property
     def stop_loss_ratio(self) -> float:
-        from utils.env_vars import STOPLOSS_RATIO
-        return float(STOPLOSS_RATIO) if STOPLOSS_RATIO else 0.9
+        return get_settings().stop_loss_ratio
     
 
     
